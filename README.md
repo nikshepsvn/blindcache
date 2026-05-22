@@ -10,6 +10,13 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/nikshepsvn/blindcache/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache 2.0" /></a>
+  <a href="https://github.com/nikshepsvn/blindcache/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/release-v0.1.0-blue.svg" alt="v0.1.0" /></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-blue.svg" alt="MCP compatible" /></a>
+  <a href="https://nillion.com"><img src="https://img.shields.io/badge/Nillion-Blind%20Computer-blue.svg" alt="Nillion Blind Computer" /></a>
+</p>
+
+<p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#tools">Tools</a> ·
   <a href="#performance">Performance</a> ·
@@ -178,6 +185,14 @@ Tier 2 — the Nillion-native differentiation, where this stops being "a memory 
 - **Field-level disclosure** → an app reads `tags` but not `content`.
 - **2-of-3 read tolerance** → fork the SDK's cluster fanout so one missing node doesn't kill reads.
 - **Lit Protocol PKP identity** → passkey-based identity, multi-device, social recovery.
+
+## License
+
+[Apache 2.0](LICENSE) © 2026 Nikshep Svn. Patent grant included; use commercially, fork freely.
+
+## Contributing
+
+Issues and PRs welcome. The project is intentionally small — keep new code in the same shape: thin wrappers over `@nillion/secretvaults`, no opinionated state machines, no business logic that doesn't earn its weight. See [CHANGELOG.md](CHANGELOG.md) for what's shipped.
 
 ---
 
