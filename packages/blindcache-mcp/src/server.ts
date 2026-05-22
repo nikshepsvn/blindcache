@@ -127,6 +127,22 @@ function buildServer(vault: Vault): McpServer {
   );
 
   server.registerTool(
+    "memory_get",
+    {
+      title: "Get a memory by id",
+      description:
+        "Fetch a single decrypted memory by id. Returns null if not found.",
+      inputSchema: {
+        id: z.string().uuid(),
+      },
+    },
+    async ({ id }) => {
+      const entry = await vault.get(id);
+      return asText({ found: entry !== null, entry });
+    }
+  );
+
+  server.registerTool(
     "memory_update",
     {
       title: "Update a memory",
@@ -250,10 +266,16 @@ async function main() {
   const httpPortEnv = process.env.BLINDCACHE_HTTP_PORT;
   if (httpPortEnv) {
     const port = Number.parseInt(httpPortEnv, 10);
-    const token = process.env.BLINDCACHE_HTTP_TOKEN;
-    if (!token) {
+    if (!Number.isFinite(port) || port < 1 || port > 65535) {
       throw new Error(
-        "BLINDCACHE_HTTP_PORT is set, but BLINDCACHE_HTTP_TOKEN is missing — refusing to start an unauthenticated HTTP server."
+        `BLINDCACHE_HTTP_PORT must be an integer in [1, 65535], got ${JSON.stringify(httpPortEnv)}.`
+      );
+    }
+    const token = (process.env.BLINDCACHE_HTTP_TOKEN ?? "").trim();
+    if (token.length < 16) {
+      throw new Error(
+        "BLINDCACHE_HTTP_PORT is set, but BLINDCACHE_HTTP_TOKEN is missing or shorter than 16 characters. " +
+          "Refusing to start an HTTP server with weak auth. Generate one: `BLINDCACHE_HTTP_TOKEN=$(uuidgen)`."
       );
     }
     await runHttp(vault, port, token);
@@ -263,6 +285,14 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("blindcache-mcp failed to start:", err);
+  // ConfigError + manual throws should surface as the message line only,
+  // not a stack-trace dump. Everything else gets the full stack for debugging.
+  const isConfig =
+    err instanceof Error && (err.name === "ConfigError" || err.message.startsWith("BLINDCACHE_"));
+  if (isConfig) {
+    console.error(`\n[blindcache-mcp] ${err.message}\n`);
+  } else {
+    console.error("blindcache-mcp failed to start:", err);
+  }
   process.exit(1);
 });

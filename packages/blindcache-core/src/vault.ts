@@ -186,6 +186,16 @@ export class Vault {
 
   // ── reads ────────────────────────────────────────────────────────────────
 
+  async get(id: string): Promise<MemoryEntry | null> {
+    const response = await this.client.findData({
+      collection: this.collectionId,
+      filter: { _id: id },
+      pagination: { limit: 1, offset: 0 },
+    });
+    const row = response.data[0];
+    return row ? rowToEntry(row) : null;
+  }
+
   async search(input: SearchInput = {}): Promise<SearchResult> {
     const filter = this.buildFilter(input);
     const limit = clamp(input.limit ?? 50, 1, MAX_PAGE);
