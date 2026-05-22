@@ -1,9 +1,9 @@
 {
-  "name": "hearth-mcp",
+  "name": "blindcache-mcp",
   "version": "0.0.1",
   "type": "module",
   "bin": {
-    "hearth-mcp": "./dist/server.js"
+    "blindcache-mcp": "./dist/server.js"
   },
   "main": "./dist/server.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "hearth-core": "workspace:*",
+    "blindcache-core": "workspace:*",
     "zod": "^3.23.0"
   },
   "devDependencies": {

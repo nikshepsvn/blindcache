@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  packages/hearth-core:
+  packages/blindcache-core:
     dependencies:
       '@nillion/nilai-ts':
         specifier: ^0.3.1
@@ -29,7 +29,7 @@ importers:
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
-      hearth-core:
+      blindcache-core:
         specifier: link:.
         version: 'link:'
       tsx:
@@ -39,14 +39,14 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
-  packages/hearth-mcp:
+  packages/blindcache-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.29.0(zod@3.25.76)
-      hearth-core:
+      blindcache-core:
         specifier: workspace:*
-        version: link:../hearth-core
+        version: link:../blindcache-core
       zod:
         specifier: ^3.23.0
         version: 3.25.76

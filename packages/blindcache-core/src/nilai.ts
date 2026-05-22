@@ -1,6 +1,6 @@
 import { NilaiOpenAIClient } from "@nillion/nilai-ts";
 
-export type TaggerConfig = {
+export type NilaiConfig = {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
@@ -8,7 +8,7 @@ export type TaggerConfig = {
   timeoutMs?: number;
 };
 
-const SYSTEM_PROMPT = `You extract topical tags from a memory entry written by an AI agent or its user.
+const TAG_SYSTEM = `You extract topical tags from a memory entry written by an AI agent or its user.
 
 Rules:
 - Return ONLY a JSON array of 2-5 short lowercase tags.
@@ -20,12 +20,22 @@ Rules:
 Example input: "Discussed the Stripe webhook retry logic with Maya — we need to handle 5xx with exponential backoff and cap at 6 attempts."
 Example output: ["stripe","webhooks","retry-logic","maya"]`;
 
+const SUMMARY_SYSTEM = `You summarize a set of personal memory entries for the user who wrote them.
+
+Rules:
+- Be concise. 3-6 short bullet points OR 1-3 short paragraphs.
+- Surface concrete facts, decisions, todos. Skip filler.
+- Group related items. Order by importance, not chronology.
+- Use the user's own phrasing where possible. Don't invent details.
+- If the user provides an instruction, follow it; otherwise produce a neutral digest.
+- Plain text only. No markdown headers.`;
+
 const DEFAULT_BASE_URL = "https://api.nilai.nillion.network/nuc/v1/";
 const DEFAULT_MODEL = "google/gemma-4-26B-A4B-it";
 const DEFAULT_MAX_TAGS = 5;
 const DEFAULT_TIMEOUT_MS = 8000;
 
-export class Tagger {
+export class Nilai {
   private constructor(
     private readonly client: NilaiOpenAIClient,
     private readonly model: string,
@@ -33,13 +43,13 @@ export class Tagger {
     private readonly timeoutMs: number
   ) {}
 
-  static maybeCreate(config: TaggerConfig): Tagger | null {
+  static maybeCreate(config: NilaiConfig): Nilai | null {
     if (!config.apiKey) return null;
     const client = new NilaiOpenAIClient({
       baseURL: config.baseUrl ?? DEFAULT_BASE_URL,
       apiKey: config.apiKey,
     });
-    return new Tagger(
+    return new Nilai(
       client,
       config.model ?? DEFAULT_MODEL,
       config.maxTags ?? DEFAULT_MAX_TAGS,
@@ -47,7 +57,36 @@ export class Tagger {
     );
   }
 
-  async suggest(content: string): Promise<string[]> {
+  async suggestTags(content: string): Promise<string[]> {
+    const raw = await this.complete(TAG_SYSTEM, content.slice(0, 4000), 80, 0.2);
+    return this.parseTags(raw);
+  }
+
+  async summarize(
+    entries: { timestamp: string; tags: string[]; content: string }[],
+    instruction?: string
+  ): Promise<string> {
+    if (entries.length === 0) return "(no memories matched)";
+    const lines = entries.map((e, i) => {
+      const tags = e.tags.length ? ` [${e.tags.join(",")}]` : "";
+      return `${i + 1}. (${e.timestamp.slice(0, 10)})${tags} ${e.content}`;
+    });
+    const user = [
+      instruction ? `Instruction: ${instruction}\n` : "",
+      `Memories:\n${lines.join("\n")}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const raw = await this.complete(SUMMARY_SYSTEM, user, 600, 0.3);
+    return raw.trim() || "(empty summary)";
+  }
+
+  private async complete(
+    system: string,
+    user: string,
+    maxTokens: number,
+    temperature: number
+  ): Promise<string> {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), this.timeoutMs);
     try {
@@ -55,26 +94,25 @@ export class Tagger {
         {
           model: this.model,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: content.slice(0, 4000) },
+            { role: "system", content: system },
+            { role: "user", content: user },
           ],
-          temperature: 0.2,
-          max_tokens: 80,
+          temperature,
+          max_tokens: maxTokens,
         },
         { signal: ac.signal }
       );
-      const raw = response.choices[0]?.message?.content ?? "";
-      return this.parse(raw);
+      return response.choices[0]?.message?.content ?? "";
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[tagger] suggestion failed: ${msg}`);
-      return [];
+      console.error(`[nilai] completion failed: ${msg}`);
+      return "";
     } finally {
       clearTimeout(timer);
     }
   }
 
-  private parse(raw: string): string[] {
+  private parseTags(raw: string): string[] {
     const trimmed = raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
     const match = trimmed.match(/\[[\s\S]*?\]/);
     if (!match) return [];
@@ -104,3 +142,7 @@ export class Tagger {
     return out;
   }
 }
+
+// Back-compat aliases — the public API used to be named Tagger.
+export { Nilai as Tagger };
+export type { NilaiConfig as TaggerConfig };

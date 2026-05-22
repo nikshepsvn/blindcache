@@ -1,4 +1,4 @@
-import type { TaggerConfig } from "./tagger.js";
+import type { NilaiConfig } from "./nilai.js";
 
 export type VaultConfig = {
   // If omitted, a fresh ephemeral signer is generated (useful for spikes/tests).
@@ -6,9 +6,10 @@ export type VaultConfig = {
   dbs: string[];
   collectionId?: string;
   builderName?: string;
-  // Auto-tagging: if tagger.apiKey is set, hearth augments every append with
-  // 2-5 LLM-suggested topical tags via nilAI (TEE-based, OpenAI-compatible).
-  tagger?: TaggerConfig;
+  // nilAI helper (auto-tagging + summarize). If apiKey is set, BlindCache
+  // augments memory_append with 2-5 LLM-suggested topical tags and
+  // unlocks memory_summary. TEE-based, OpenAI-compatible.
+  tagger?: NilaiConfig;
 };
 
 const TESTNET_DBS = [
@@ -25,7 +26,7 @@ export function configFromEnv(): VaultConfig {
     .filter(Boolean);
 
   const taggerApiKey = process.env.NILLION_API_KEY ?? process.env.NILAI_API_KEY;
-  const tagger: TaggerConfig | undefined = taggerApiKey
+  const tagger: NilaiConfig | undefined = taggerApiKey
     ? {
         apiKey: taggerApiKey,
         baseUrl: process.env.NILAI_BASE_URL,
@@ -36,8 +37,8 @@ export function configFromEnv(): VaultConfig {
   return {
     privateKey,
     dbs,
-    collectionId: process.env.HEARTH_COLLECTION_ID,
-    builderName: process.env.HEARTH_BUILDER_NAME ?? "hearth",
+    collectionId: process.env.BLINDCACHE_COLLECTION_ID,
+    builderName: process.env.BLINDCACHE_BUILDER_NAME ?? "blindcache",
     tagger,
   };
 }
