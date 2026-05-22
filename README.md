@@ -111,9 +111,27 @@ BLINDCACHE_HTTP_PORT=3737 BLINDCACHE_HTTP_TOKEN=$(uuidgen) pnpm dev:mcp
 
 `BLINDCACHE_HTTP_TOKEN` is required — the server refuses to listen otherwise.
 
+## Switching from testnet to mainnet
+
+Testnet is permissive — write all you want, no payment. Mainnet is the real, decentralized network: four nodes operated by Nillion, PairPoint, STC Bahrain, and Deutsche Telekom MMS. To flip:
+
+**1. Subscribe via the developer portal.** Open [`portal.nillion.com`](https://portal.nillion.com), connect a Keplr wallet, and subscribe to nilDB. Both nilDB and nilAI have a free tier; beyond it you burn NIL → credits → assign to specific nodes. The portal walks you through it; no email or credit card required.
+
+**2. Point `NILDB_NODES` at the mainnet cluster.** Override the env var (default is testnet):
+
+```bash
+NILDB_NODES="https://nildb-5ab1.nillion.network,https://nildb-f496.pairpointweb3.io,https://nildb-f375.stcbahrain.net,https://nildb-2140.staking.telekom-mms.com"
+```
+
+**3. Use the builder key the portal generated.** Set `NIL_BUILDER_PRIVATE_KEY` to the key from your subscription — that's the DID the network knows you by.
+
+**4. Re-run.** Nothing else changes. Same SDK, same MCP tools, same code. The collection auto-creates on first call; new builder = new vault.
+
+> Migration note: there is no automatic data migration from testnet to mainnet. Treat testnet as scratch space.
+
 ## Performance
 
-Numbers from `pnpm smoke` against `nildb-stg-n{1,2,3}.nillion.network`, US laptop.
+Numbers from `pnpm smoke` against `nildb-stg-n{1,2,3}.nillion.network` — measured **from Southeast Asia (India) while traveling**, talking to a US/EU staging cluster. The numbers below are with that ~250 ms baseline round-trip already baked in. Closer to the nodes, expect roughly half this.
 
 | Operation | Latency |
 |---|---|
