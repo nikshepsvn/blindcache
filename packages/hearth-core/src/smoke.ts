@@ -33,19 +33,41 @@ async function main() {
   const { result: vault, ms: openMs } = await timed("vault.open()", () => Vault.open(cfg));
   const collectionId = vault.getCollectionId();
   console.log("  collectionId (active):       ", collectionId);
+  console.log("  auto-tagger:                 ", vault.hasTagger() ? "ON (nilAI)" : "off (no NILLION_API_KEY)");
   writeFileSync(STATE_FILE, collectionId);
+
+  const seeds = [
+    "Pair-programmed with Maya on the Stripe webhook retry logic — exponential backoff capped at 6 attempts.",
+    "Reminder: book dentist appointment for early June, prefer mornings.",
+    "Read a Rust blog post on async cancellation safety — Tokio's CancellationToken pattern.",
+    "Q3 hiring plan needs 2 backend engineers and 1 designer.",
+    "Spike on Nillion vault — sub-500ms encrypted writes against testnet.",
+    "Idea: an MCP server that gives every agent the same personal memory.",
+    "Grocery list: olive oil, sourdough, basil.",
+    "Listened to a Lex Fridman ep with Yann LeCun on JEPA architectures.",
+    "Followup with Devon next week re: the partner agreement draft.",
+    "Espresso machine descaling — every 60 cups apparently.",
+  ];
 
   console.log("\n--- append x10 ---");
   const appendTimes: number[] = [];
-  for (let i = 0; i < 10; i++) {
-    const { ms } = await timed(`append #${i + 1}`, () =>
-      vault.append({
-        content: `entry-${i} at ${new Date().toISOString()} — quick brown fox ${i}`,
-        tags: i % 2 === 0 ? ["test", "even"] : ["test", "odd"],
-        source: "smoke",
-      })
+  const appended: Awaited<ReturnType<typeof vault.append>>[] = [];
+  for (let i = 0; i < seeds.length; i++) {
+    const { ms, result } = await timed(`append #${i + 1}`, () =>
+      vault.append({ content: seeds[i]!, source: "smoke" })
     );
     appendTimes.push(ms);
+    appended.push(result);
+  }
+
+  if (vault.hasTagger()) {
+    console.log("\n--- sample auto-tags ---");
+    for (let i = 0; i < Math.min(5, appended.length); i++) {
+      const entry = appended[i]!;
+      console.log(
+        `  "${entry.content.slice(0, 40)}…" → [${entry.tags.join(", ")}]`
+      );
+    }
   }
 
   console.log("\n--- search ---");
@@ -54,14 +76,21 @@ async function main() {
   );
   console.log(`  → ${hits.length} entries`);
 
-  const { ms: tagMs } = await timed("search({tags:['even']})", () =>
-    vault.search({ tags: ["even"] })
-  );
+  const probeTags = vault.hasTagger()
+    ? appended.flatMap((e) => e.tags).filter((t) => t !== "smoke")
+    : [];
+  const probeTag = probeTags[0];
+  const { ms: tagMs } = probeTag
+    ? await timed(`search({tags:['${probeTag}']})`, () =>
+        vault.search({ tags: [probeTag] })
+      )
+    : { ms: 0 };
+
   const { ms: queryMs, result: foxHits } = await timed(
-    "search({query:'fox 7'})",
-    () => vault.search({ query: "fox 7", source: "smoke" })
+    "search({query:'stripe'})",
+    () => vault.search({ query: "stripe", source: "smoke" })
   );
-  console.log(`  → ${foxHits.length} match(es) for 'fox 7'`);
+  console.log(`  → ${foxHits.length} match(es) for 'stripe'`);
   if (foxHits.length > 0) {
     console.log(`  decrypted sample: "${foxHits[0]!.content.slice(0, 60)}..."`);
   }

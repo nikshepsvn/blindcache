@@ -3,6 +3,7 @@ import { SecretVaultBuilderClient } from "@nillion/secretvaults";
 import { v4 as uuidv4 } from "uuid";
 import type { VaultConfig } from "./config.js";
 import { MEMORY_SCHEMA } from "./schema.js";
+import { Tagger } from "./tagger.js";
 
 export type MemoryEntry = {
   id: string;
@@ -29,8 +30,13 @@ export class Vault {
   private constructor(
     private readonly client: SecretVaultBuilderClient,
     private collectionId: string,
-    private readonly builderName: string
+    private readonly builderName: string,
+    private readonly tagger: Tagger | null
   ) {}
+
+  hasTagger(): boolean {
+    return this.tagger !== null;
+  }
 
   static async open(config: VaultConfig): Promise<Vault> {
     const signer = config.privateKey
@@ -58,7 +64,9 @@ export class Vault {
       builderName
     );
 
-    return new Vault(client, collectionId, builderName);
+    const tagger = config.tagger ? Tagger.maybeCreate(config.tagger) : null;
+
+    return new Vault(client, collectionId, builderName, tagger);
   }
 
   getCollectionId(): string {
@@ -67,10 +75,16 @@ export class Vault {
 
   async append(input: AppendInput): Promise<MemoryEntry> {
     const id = uuidv4();
+    const providedTags = input.tags ?? [];
+    const suggested = this.tagger
+      ? await this.tagger.suggest(input.content)
+      : [];
+    const tags = mergeTags(providedTags, suggested);
+
     const entry = {
       _id: id,
       timestamp: new Date().toISOString(),
-      tags: input.tags ?? [],
+      tags,
       source: input.source ?? "unknown",
       content: { "%allot": input.content },
     };
@@ -181,6 +195,20 @@ async function ensureCollection(
     schema: MEMORY_SCHEMA as unknown as Record<string, unknown>,
   });
   return collectionId;
+}
+
+function mergeTags(provided: string[], suggested: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of [...provided, ...suggested]) {
+    const norm = t.toLowerCase().trim();
+    if (!norm) continue;
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    out.push(norm);
+    if (out.length >= 8) break;
+  }
+  return out;
 }
 
 function rowToEntry(row: Record<string, unknown>): MemoryEntry {

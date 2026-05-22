@@ -71,6 +71,17 @@ For persistent memory across sessions, set `NIL_BUILDER_PRIVATE_KEY` to a real h
 - `memory_list({ limit? })` — most recent memories.
 - `memory_delete({ id })` — permanent removal.
 
+## Auto-tagging
+
+If `NILLION_API_KEY` is set, every `memory_append` is augmented with 2-5 LLM-suggested topical tags via [nilAI](https://docs.nillion.com/blind-computer/build/llms/quickstart) — an OpenAI-compatible endpoint that runs the model inside a Trusted Execution Environment. Without auto-tagging, content search degrades to substring match across the whole filtered set; with it, server-side tag filters take you from naive `.includes()` to real recall.
+
+**Privacy trade-off:** nilAI is TEE-based, not MPC. Plaintext is briefly visible to the model inside the enclave during inference. The vault itself remains MPC-encrypted at rest. If your threat model requires that no Nillion infrastructure ever sees plaintext, leave `NILLION_API_KEY` unset and tag manually.
+
+```
+"Pair-programmed with Maya on Stripe webhook retry logic…"
+  → [stripe, webhooks, retry-logic, maya]
+```
+
 ## Known gotchas
 
 1. **Schema must be `type: "array"` at root** — `items.<entry>` defines each record. A root `type: "object"` schema gets rejected as "must be object" because nilDB validates the whole batch.
