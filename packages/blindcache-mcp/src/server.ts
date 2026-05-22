@@ -206,6 +206,10 @@ async function runStdio(vault: Vault): Promise<void> {
   const server = buildServer(vault);
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // stdout is the JSON-RPC channel for stdio MCP; status goes to stderr.
+  console.error(
+    `[blindcache-mcp] stdio ready (collection ${vault.getCollectionId()})`
+  );
   process.on("SIGINT", () => {
     void server.close();
     process.exit(0);
