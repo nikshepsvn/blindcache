@@ -80,7 +80,7 @@ The same person — me — uses Cursor on a laptop, Claude on a phone, ChatGPT o
 | Multi-user compute over private data | Architecturally impossible | **Yes** (Tier 2: Nada MPC) | No | No |
 | Memory reasoning (contradictions, temporal, etc.) | **Sophisticated** | Basic + optional nilAI summarize | Sophisticated | Black box |
 | Retrieval explainability | **Per-result component scores** | None | Partial (varies) | None |
-| Latency | **~10s of ms** | ~330 ms | ~100–300 ms | seconds |
+| Latency | **~10s of ms** | ~150–300 ms (geography-dependent; ~330 ms from SEA → US/EU, closer to ~150 ms in-region) | ~100–300 ms | seconds |
 | Cost | **$0** | Free tier + NIL burn | $29–99/mo subscription | $20/mo + ChatGPT subscription |
 
 ### The honest take
