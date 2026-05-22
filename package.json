@@ -1,0 +1,12 @@
+{
+  "name": "hearth",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "postinstall": "node scripts/fix-libsodium.mjs",
+    "build": "pnpm -r build",
+    "dev:mcp": "pnpm --filter hearth-mcp dev",
+    "smoke": "pnpm --filter hearth-core smoke"
+  }
+}
