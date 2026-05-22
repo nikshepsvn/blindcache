@@ -19,6 +19,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#tools">Tools</a> ·
+  <a href="#background-and-where-nemo-ai-fits-in">Background</a> ·
   <a href="#performance">Performance</a> ·
   <a href="#wire-into-claude-code">Claude Code</a> ·
   <a href="#whats-next">What's next</a>
@@ -47,6 +48,46 @@ Every AI agent today re-asks you for the same context. Mem0, Letta, Zep, ChatGPT
 ```
 
 Plaintext only ever exists inside the MCP process and (briefly, inside an enclave) inside nilAI when auto-tagging is on. Nothing else.
+
+## Background — and where nemo-ai fits in
+
+Before BlindCache, I built **[nemo-ai](https://github.com/nikshepsvn/nemo-ai)** — also an MCP memory server, also "private memory for AI agents," but with a fundamentally different threat model. BlindCache exists because nemo-ai answers one question (*how do I keep memory off the cloud entirely?*) brilliantly but can't answer another (*how do I share that memory across my devices, apps, and — eventually — other people, without trusting any operator?*).
+
+### What nemo-ai is great at
+
+- **Fully local** — SQLite + Ollama, nothing leaves your laptop. Zero cost forever, zero infra, ~10s of ms latency.
+- **Sophisticated memory logic** — fact extraction, ADD/UPDATE/INVALIDATE reasoning (e.g. *"I moved to Berlin"* invalidates *"I live in London"*), bi-temporal model (`valid_at` / `invalid_at`), auto-extracted entity graph with temporally tracked edges, multi-factor retrieval scoring with per-result component breakdown, session consolidation that dedups + merges + links.
+- **Single-machine privacy** is the strongest possible answer for the use cases it serves: nothing to subpoena, nothing to leak, nothing to trust.
+
+### Where nemo-ai stops
+
+- **One machine only.** Use Cursor on a laptop *and* Claude on a phone *and* ChatGPT in a browser? Your memory is on the laptop. (E2EE sync is on the roadmap; not built.)
+- **Single app, single user.** No way for two apps to share the same vault with scoped access; no way for two users to compute over each other's memory without revealing it.
+- **No cloud — so no cloud-resistant guarantees.** The privacy story is "the data isn't out there." That works until you need it out there.
+
+### Why BlindCache exists
+
+The same person — me — uses Cursor on a laptop, Claude on a phone, ChatGPT on the web, and would like one memory across all of those. That requires a cloud surface. The moment you put memory in a cloud surface, the question is *who can read it*. nemo-ai's answer ("nobody, because it's not in the cloud") is unbeatable for its use case. BlindCache's answer ("nobody, because it's secret-shared across three operators who'd have to collude to decrypt") is unbeatable for use cases nemo-ai can't reach: cross-device, multi-app, eventually multi-user MPC.
+
+### How this compares to other options
+
+|  | nemo-ai | **BlindCache** | Mem0 / Letta / Zep | ChatGPT memory |
+| --- | --- | --- | --- | --- |
+| Lives where | Your laptop | Sharded across 3 nilDB nodes | Provider's cloud | OpenAI's cloud |
+| Operator can read your content | N/A (no operator) | **No — cryptographic** | Yes | Yes |
+| Cross-device | No (roadmap) | **Yes** | Yes | Locked to ChatGPT |
+| Multi-app sharing | No | **Yes** (Tier 2: per-doc ACLs) | One app at a time | No |
+| Multi-user compute over private data | Architecturally impossible | **Yes** (Tier 2: Nada MPC) | No | No |
+| Memory reasoning (contradictions, temporal, etc.) | **Sophisticated** | Basic + optional nilAI summarize | Sophisticated | Black box |
+| Retrieval explainability | **Per-result component scores** | None | Partial (varies) | None |
+| Latency | **~10s of ms** | ~330 ms | ~100–300 ms | seconds |
+| Cost | **$0** | Free tier + NIL burn | $29–99/mo subscription | $20/mo + ChatGPT subscription |
+
+### The honest take
+
+These aren't competing on the same axis. **nemo-ai is the right tool when memory should never leave your machine.** **BlindCache is the right tool when memory has to be reachable across machines and apps but you don't trust any cloud operator.** They occupy different points in the design space.
+
+The most interesting future is **nemo-ai's reasoning layer running on top of BlindCache's encrypted substrate** — local intelligence (ADD/UPDATE/INVALIDATE, contradiction detection, entity graphs) layered over cryptographic persistence (cross-device reach, multi-app scoping, cross-user compute). That's a 1 + 1 = 3. See [What's next](#whats-next).
 
 ## Tools
 
