@@ -236,7 +236,9 @@ docs/
 
 ## What's next
 
-Tier 2 — the Nillion-native differentiation, where this stops being "a memory layer" and becomes a primitive nothing else can build:
+Two parallel tracks. **Tier 2** is the Nillion-native differentiation; **the nemo-ai integration** is the 1 + 1 = 3 with the [prior project](#background-and-where-nemo-ai-fits-in).
+
+### Tier 2 — primitives nothing else can build
 
 - **Owned collections + per-document ACLs** → user owns vault, multiple apps coexist with scoped access.
 - **OAuth-shape scope handoff** → third-party apps request scoped delegation tokens; user approves via a dashboard. Plaid Link, but for memory.
@@ -245,6 +247,16 @@ Tier 2 — the Nillion-native differentiation, where this stops being "a memory 
 - **Field-level disclosure** → an app reads `tags` but not `content`.
 - **2-of-3 read tolerance** → fork the SDK's cluster fanout so one missing node doesn't kill reads.
 - **Lit Protocol PKP identity** → passkey-based identity, multi-device, social recovery.
+
+### nemo-ai + BlindCache integration
+
+A separate adapter package (`nemo-blindcache` or an example in either repo) that lets nemo-ai's reasoning layer use BlindCache as its persistence backend. Concretely:
+
+- **nemo handles** fact extraction, ADD/UPDATE/INVALIDATE reasoning, contradiction detection, the entity graph, multi-factor scoring.
+- **BlindCache handles** encrypted-at-rest persistence, cross-device reach, multi-app scoping (via Tier 2 ACLs), eventually cross-user MPC.
+- The result: an MCP server with nemo's *intelligence* and BlindCache's *substrate*. Local reasoning, cryptographic persistence, agent-accessible from anywhere — a combination neither project achieves alone.
+
+This is the more interesting of the two tracks long-term. Tier 2 unlocks the substrate's full surface; the nemo integration shows the substrate is worth using even when you already have a smart local memory layer.
 
 ## License
 
