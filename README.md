@@ -56,6 +56,7 @@ Plaintext only ever exists inside the MCP process and (briefly, inside an enclav
 | `memory_bulk_append` | Up to 200 entries in a single round trip. |
 | `memory_search` | Plaintext filters (`tags` / `source` / `scope` / `since` / `before` / cursor) server-side. Optional `query` string runs client-side after decryption. |
 | `memory_list` | Recent-first listing, scope-aware. |
+| `memory_get` | Fetch a single decrypted memory by id. |
 | `memory_update` | Edit content / tags / source / scope of an entry by id. |
 | `memory_delete` | Permanent removal by id. |
 | `memory_summary` | Pull memories matching a filter, summarize via nilAI. Requires `NILLION_API_KEY`. |

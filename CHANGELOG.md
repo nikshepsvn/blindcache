@@ -9,7 +9,7 @@ Initial public release. Phase 0 spike + Tier 1 features.
 ### Added
 
 - `blindcache-core` — vault wrapper over `@nillion/secretvaults` v3
-  - `append`, `bulkAppend`, `search`, `list`, `update`, `delete`, `summarize`
+  - `append`, `bulkAppend`, `get`, `search`, `list`, `update`, `delete`, `summarize`
   - Plaintext fields (`tags`, `source`, `scope`, `timestamp`) queryable server-side
   - Content encrypted across 3 nilDB nodes via `%allot` / `%share` (Shamir shares)
   - Time-range filters: ISO, ms epoch, or relative ("7d", "24h", "15m")
@@ -18,15 +18,20 @@ Initial public release. Phase 0 spike + Tier 1 features.
 - `blindcache-mcp` — Model Context Protocol server
   - Stdio transport (default) for Claude Code / Cursor / Windsurf
   - Streamable HTTP transport with bearer-token auth (`BLINDCACHE_HTTP_PORT` + `BLINDCACHE_HTTP_TOKEN`)
-  - Seven `memory_*` tools: append, bulk_append, search, list, update, delete, summary
+  - Eight `memory_*` tools: append, bulk_append, search, list, get, update, delete, summary
   - `/health` endpoint for ops visibility
 - Auto-tagging via [nilAI](https://docs.nillion.com/blind-computer/build/llms/quickstart) (TEE-based, OpenAI-compatible)
 - `memory_summary` via nilAI for LLM digests of filtered memories
 - `pnpm keygen` helper for generating persistent builder keypairs
+- Configuration validation at startup with friendly error messages (no more hex-parse stack traces)
 - Postinstall workaround for upstream `libsodium-wrappers-sumo` ESM packaging bug
 - Apache-2.0 license
 
-### Phase 0 latency benchmarks (testnet, US laptop)
+### Phase 0 latency benchmarks
+
+Measured from Southeast Asia (India) to a US/EU staging cluster, so the
+~250 ms baseline round-trip is already baked in. Closer to the nodes,
+expect roughly half this.
 
 - `vault.open()` one-time: 3–5 s
 - `append` median / p95: ~335 ms / ~1.2 s
