@@ -1,4 +1,5 @@
 import type { NilaiConfig } from "./nilai.js";
+import type { EmbedderConfig } from "./embeddings.js";
 
 export type VaultConfig = {
   // If omitted, a fresh ephemeral signer is generated (useful for spikes/tests).
@@ -10,6 +11,10 @@ export type VaultConfig = {
   // augments memory_append with 2-5 LLM-suggested topical tags and
   // unlocks memory_summary. TEE-based, OpenAI-compatible.
   tagger?: NilaiConfig;
+  // Local embedding model (default: Xenova/all-MiniLM-L6-v2, q8 quantized).
+  // Embeddings power semantic search; computed in-process so no plaintext
+  // ever leaves the SDK for embedding.
+  embedder?: EmbedderConfig;
 };
 
 export class ConfigError extends Error {
@@ -109,5 +114,9 @@ export function configFromEnv(): VaultConfig {
     collectionId: process.env.BLINDCACHE_COLLECTION_ID,
     builderName: process.env.BLINDCACHE_BUILDER_NAME ?? "blindcache",
     tagger,
+    embedder: {
+      model: process.env.BLINDCACHE_EMBED_MODEL,
+      dtype: (process.env.BLINDCACHE_EMBED_DTYPE as "fp32" | "fp16" | "q8" | "q4" | undefined),
+    },
   };
 }

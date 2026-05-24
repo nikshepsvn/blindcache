@@ -2,6 +2,39 @@
 
 All notable changes to BlindCache. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] — 2026-05-24
+
+Client-side semantic search shipped. Embeddings happen in-process via [Xenova/all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (q8 quantized, ~23 MB, 384-dim) — content never leaves the SDK to be embedded. Vectors are stored plaintext alongside encrypted content; cosine ranking runs client-side after fetch.
+
+This is a strict privacy upgrade over mem0 / Letta / Zep, which send your plaintext to OpenAI's embedding API on every write.
+
+### Added
+
+- `Embedder` — lazy-loaded singleton; pulls the model on first use.
+- `vault.search({ semantic: "query" })` — embeds the query locally, narrows candidates by structured filter (overscan 10×), ranks by cosine, returns top-K with per-result `score`.
+- `vault.warmEmbedder()` — pre-load the model if you want first append/search to be instant.
+- `MemoryEntry.embedding?: number[]` and `MemoryEntry.score?: number` fields.
+- Schema **v3**: `embedding` plaintext array field, 384-dim. *Bumping the schema version creates a new collection; v2 collections stay queryable under their old schema but won't get vectors on new writes.*
+- `BLINDCACHE_EMBED_MODEL` and `BLINDCACHE_EMBED_DTYPE` env vars for swapping the embedding model.
+- MCP `memory_search` now accepts `semantic` — preferred over `query` for real recall.
+
+### v0.2 latency benchmarks (testnet, from Southeast Asia)
+
+- `vault.open()`: ~1.9 s (down from 3–5 s, the open path got tighter)
+- Model load (one-time, cached after first download): ~80 ms warm / ~3 s cold
+- `append` (auto-tag + embed in parallel): median ~210 ms, p95 ~310 ms — *faster* than v0.1 because the local embed overlaps with the network write
+- `semantic search` (embed query + fetch + rank): median ~370 ms, p95 ~530 ms
+- All 4 test queries returned the correct top result on first try (100% top-1 accuracy on a 10-entry vault)
+
+### Changed
+
+- `MemoryEntry` shape: added `embedding` and `score`; existing fields unchanged.
+- `vault.update({ content })` now re-embeds when content changes.
+
+### Privacy footnote (honest)
+
+Embeddings are stored **plaintext** in v0.2. An adversary scraping all 3 nilDB nodes could not reconstruct your text from vectors, but could see semantic clusters. A future v0.3 will encrypt embeddings via `%allot` (Path B), and v0.4 will explore server-side cosine via Nada AI MPC (where neither the query nor the stored vectors are ever decrypted).
+
 ## [0.1.0] — 2026-05-22
 
 Initial public release. Phase 0 spike + Tier 1 features. Published to npm 2026-05-24:

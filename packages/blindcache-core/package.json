@@ -1,6 +1,6 @@
 {
   "name": "blindcache-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vault wrapper over @nillion/secretvaults — encrypted memory CRUD, bulk, summarize, auto-tag. Core library for BlindCache.",
   "keywords": [
     "nillion",
@@ -42,6 +42,7 @@
     "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@nillion/nilai-ts": "^0.3.1",
     "@nillion/nuc": "^2.0.1",
     "@nillion/secretvaults": "^3.0.0",

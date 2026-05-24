@@ -1,6 +1,6 @@
 {
   "name": "blindcache-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for BlindCache — encrypted, portable AI memory backed by Nillion's Blind Computer. Drops into Claude Code, Cursor, any MCP-compatible client.",
   "keywords": [
     "mcp",

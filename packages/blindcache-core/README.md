@@ -10,8 +10,9 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/blindcache-mcp"><img src="https://img.shields.io/npm/v/blindcache-mcp?label=blindcache-mcp&color=blue" alt="npm: blindcache-mcp" /></a>
+  <a href="https://www.npmjs.com/package/blindcache-core"><img src="https://img.shields.io/npm/v/blindcache-core?label=blindcache-core&color=blue" alt="npm: blindcache-core" /></a>
   <a href="https://github.com/nikshepsvn/blindcache/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache 2.0" /></a>
-  <a href="https://github.com/nikshepsvn/blindcache/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/release-v0.1.0-blue.svg" alt="v0.1.0" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-blue.svg" alt="MCP compatible" /></a>
   <a href="https://nillion.com"><img src="https://img.shields.io/badge/Nillion-Blind%20Computer-blue.svg" alt="Nillion Blind Computer" /></a>
 </p>
@@ -95,7 +96,7 @@ The most interesting future is **nemo-ai's reasoning layer running on top of Bli
 |---|---|
 | `memory_append` | Store one encrypted memory. Auto-tagged via nilAI when configured. |
 | `memory_bulk_append` | Up to 200 entries in a single round trip. |
-| `memory_search` | Plaintext filters (`tags` / `source` / `scope` / `since` / `before` / cursor) server-side. Optional `query` string runs client-side after decryption. |
+| `memory_search` | Plaintext filters (`tags` / `source` / `scope` / `since` / `before` / cursor) server-side. Pass `semantic` for cosine-ranked recall via local embeddings, or `query` for substring match on decrypted content. |
 | `memory_list` | Recent-first listing, scope-aware. |
 | `memory_get` | Fetch a single decrypted memory by id. |
 | `memory_update` | Edit content / tags / source / scope of an entry by id. |
@@ -105,20 +106,24 @@ The most interesting future is **nemo-ai's reasoning layer running on top of Bli
 ## Quick start
 
 ```bash
-pnpm install
-pnpm smoke          # full CRUD + filters + cursor + update + bulk against testnet
+npx blindcache-mcp        # stdio MCP server, ready to wire into any client
 ```
 
-That generates an ephemeral builder keypair, registers with Nillion testnet, creates a collection, writes 10 encrypted memories, runs every filter variant, paginates, updates, bulk-inserts, and prints latency. No env vars required.
+That's it. First run takes a few seconds (npm download); subsequent runs start in <1s. Without env vars, an ephemeral builder key is generated and a new vault is created on the Nillion testnet — fine for kicking the tires.
 
-For persistent memory across restarts, get a real key:
+For persistent memory across restarts, generate a real key once and pass it in:
 
 ```bash
-pnpm keygen         # prints PRIVATE KEY + DID
-# paste the key into .env as NIL_BUILDER_PRIVATE_KEY
-pnpm build
-pnpm dev:mcp        # stdio
+# Generate a fresh 32-byte hex private key
+NIL_BUILDER_PRIVATE_KEY=$(openssl rand -hex 32)
+
+# Run with the key set (export it or inline it as below)
+NIL_BUILDER_PRIVATE_KEY=$NIL_BUILDER_PRIVATE_KEY npx blindcache-mcp
 ```
+
+Save the hex key somewhere — it's the only way back into the same vault.
+
+> Working from source instead? `git clone` this repo, then `pnpm install && pnpm smoke` runs the full CRUD + filters + cursor + update + bulk roundtrip against testnet. `pnpm keygen` prints a fresh key; `pnpm dev:mcp` starts the server.
 
 ## Wire into Claude Code
 
@@ -128,8 +133,8 @@ Add to `~/.claude/claude_desktop_config.json` (or a per-project `.mcp.json`):
 {
   "mcpServers": {
     "blindcache": {
-      "command": "node",
-      "args": ["/absolute/path/to/blindcache/packages/blindcache-mcp/dist/server.js"],
+      "command": "npx",
+      "args": ["-y", "blindcache-mcp"],
       "env": {
         "NIL_BUILDER_PRIVATE_KEY": "your-hex-private-key-here",
         "NILLION_API_KEY": "optional — unlocks auto-tag + memory_summary"
@@ -177,18 +182,32 @@ Numbers from `pnpm smoke` against `nildb-stg-n{1,2,3}.nillion.network` — measu
 
 | Operation | Latency |
 |---|---|
-| `vault.open()` (one-time) | 3-5 s |
-| `append` median / p95 | ~335 ms / ~1.2 s |
-| `bulkAppend(5)` | ~370 ms |
-| `update` (re-encrypt + write) | ~600 ms |
-| `search` (scope filter) | ~330 ms |
-| `search` (query + scope) | ~320 ms |
-| `search` (time-range) | ~310 ms |
-| `search` (cursor page) | ~315 ms |
-| `delete` | ~315 ms |
+| `vault.open()` (one-time) | ~1.9 s |
+| Embedder warm (one-time, after first model download) | ~80 ms |
+| `append` (auto-tag + embed in parallel) median / p95 | ~210 ms / ~310 ms |
+| `semantic search` (embed query + fetch + cosine rank) median / p95 | ~370 ms / ~530 ms |
+| `bulkAppend(5)` | ~235 ms |
+| `update` (re-fetch + re-embed + re-encrypt) | ~750 ms |
+| `search` (scope filter only) | ~195 ms |
+| `delete` | ~200 ms |
 | `summarize` (nilAI) | requires `NILLION_API_KEY` |
 
-Decryption round-trip is verified end-to-end in the smoke test.
+v0.2 made append *faster* than v0.1: local embedding overlaps with the network write, so the SDK isn't idle while shares fan out. Decryption round-trip + semantic top-1 accuracy verified end-to-end in `pnpm smoke`.
+
+## Semantic search (the v0.2 thing)
+
+Pass `semantic` to `memory_search` instead of (or alongside) the older `query` substring filter:
+
+```ts
+await vault.search({ semantic: "payment processing bugs", scope: "work", limit: 5 });
+// → top result is the Stripe webhook note even though "payment" isn't in the text
+```
+
+The query is embedded **locally** with [Xenova/all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (~23 MB q8 quantized, 384-dim, ~2 ms per embed on a laptop CPU). Stored embeddings live as a plaintext array on each memory; cosine ranking runs in the SDK after fetching the structurally-filtered candidate set.
+
+> **Why this matters compared to mem0/Letta/Zep:** all of them send your plaintext to OpenAI's embedding API on every write. BlindCache embeds in-process. Your text never leaves your machine for the embed step. That's a strict privacy upgrade — and you don't pay per-embedding to anyone.
+
+> **Honest footnote:** in v0.2 the *vectors themselves* are stored plaintext on the nodes. An operator scraping all 3 can't reconstruct your text but could see semantic clusters. v0.3 will encrypt embeddings via `%allot`; v0.4 will explore server-side cosine via Nada AI MPC where neither the query nor stored vectors ever get decrypted.
 
 ## Auto-tag and summarize (nilAI)
 

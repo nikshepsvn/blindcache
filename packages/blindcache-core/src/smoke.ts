@@ -11,7 +11,7 @@ async function timed<T>(
   const start = performance.now();
   const result = await fn();
   const ms = performance.now() - start;
-  console.log(`  ${label.padEnd(36)} ${ms.toFixed(0).padStart(6)}ms`);
+  console.log(`  ${label.padEnd(40)} ${ms.toFixed(0).padStart(6)}ms`);
   return { result, ms };
 }
 
@@ -44,8 +44,14 @@ async function main() {
   );
   writeFileSync(STATE_FILE, collectionId);
 
+  // Pre-warm the embedder so the first append doesn't pay model-load latency.
+  const { ms: warmMs } = await timed("embedder.warm() (one-time)", () =>
+    vault.warmEmbedder()
+  );
+
+  // Deliberately distinguishable topics so semantic ranking is testable.
   const seeds = [
-    "Pair-programmed with Maya on the Stripe webhook retry logic — exponential backoff capped at 6 attempts.",
+    "Pair-programmed with Maya on Stripe webhook retry logic — exponential backoff capped at 6 attempts.",
     "Reminder: book dentist appointment for early June, prefer mornings.",
     "Read a Rust blog post on async cancellation safety — Tokio's CancellationToken pattern.",
     "Q3 hiring plan needs 2 backend engineers and 1 designer.",
@@ -57,7 +63,7 @@ async function main() {
     "Espresso machine descaling — every 60 cups apparently.",
   ];
 
-  console.log("\n--- append x10 (auto-tag + scope='smoke') ---");
+  console.log("\n--- append x10 (auto-tag + embedding + scope='smoke') ---");
   const appendTimes: number[] = [];
   const appended: Awaited<ReturnType<typeof vault.append>>[] = [];
   for (let i = 0; i < seeds.length; i++) {
@@ -68,48 +74,37 @@ async function main() {
     appended.push(result);
   }
 
-  if (vault.hasNilai()) {
-    console.log("\n--- sample auto-tags ---");
-    for (let i = 0; i < Math.min(5, appended.length); i++) {
-      const entry = appended[i]!;
-      console.log(
-        `  "${entry.content.slice(0, 40)}…" → [${entry.tags.join(", ")}]`
-      );
-    }
+  console.log("\n--- semantic search (the new thing) ---");
+  const queries = [
+    { q: "payment processing bugs", expectedHint: "stripe" },
+    { q: "vacation booking dental", expectedHint: "dentist" },
+    { q: "AI research papers", expectedHint: "lecun" },
+    { q: "what should I cook tonight", expectedHint: "grocery" },
+  ];
+
+  const semanticTimes: number[] = [];
+  for (const { q, expectedHint } of queries) {
+    const { ms, result } = await timed(`semantic("${q}")`, () =>
+      vault.search({ semantic: q, scope: "smoke", limit: 3 })
+    );
+    semanticTimes.push(ms);
+    const top = result.entries[0];
+    const matched = top?.content.toLowerCase().includes(expectedHint);
+    console.log(
+      `      top: ${matched ? "✓" : "?"} "${top?.content.slice(0, 60)}…" (score ${top?.score?.toFixed(3) ?? "-"})`
+    );
   }
 
-  console.log("\n--- search variants ---");
-  const { ms: searchMs, result: scoped } = await timed(
+  console.log("\n--- classic structured search ---");
+  const { ms: scopeMs, result: scoped } = await timed(
     "search({scope:'smoke'})",
     () => vault.search({ scope: "smoke", limit: 20 })
   );
   console.log(`  → ${scoped.entries.length} entries`);
 
-  const { ms: queryMs, result: queryHits } = await timed(
-    "search({query:'stripe', scope:'smoke'})",
-    () => vault.search({ query: "stripe", scope: "smoke" })
+  const { ms: timeMs } = await timed("search({since:'5m'})", () =>
+    vault.search({ since: "5m", scope: "smoke" })
   );
-  console.log(`  → ${queryHits.entries.length} match(es) for 'stripe'`);
-
-  const { ms: timeMs, result: recent } = await timed(
-    "search({since:'5m', scope:'smoke'})",
-    () => vault.search({ since: "5m", scope: "smoke" })
-  );
-  console.log(`  → ${recent.entries.length} entries from last 5m`);
-
-  const { ms: pageMs, result: page1 } = await timed(
-    "search({scope:'smoke', limit:3})",
-    () => vault.search({ scope: "smoke", limit: 3 })
-  );
-  console.log(`  → page1: ${page1.entries.length} entries, cursor=${page1.nextCursor ? "yes" : "no"}`);
-  if (page1.nextCursor) {
-    const { ms: page2Ms, result: page2 } = await timed(
-      "search({cursor:...})",
-      () => vault.search({ scope: "smoke", limit: 3, cursor: page1.nextCursor })
-    );
-    console.log(`  → page2: ${page2.entries.length} entries, cursor=${page2.nextCursor ? "yes" : "no"}`);
-    void page2Ms;
-  }
 
   console.log("\n--- update ---");
   const target = appended[0]!;
@@ -119,7 +114,7 @@ async function main() {
   );
   console.log(`  modified ${updated} document(s)`);
 
-  console.log("\n--- bulkAppend x5 (no auto-tag) ---");
+  console.log("\n--- bulkAppend x5 (no auto-tag, embeddings still on) ---");
   const { ms: bulkMs, result: bulk } = await timed("bulkAppend(5)", () =>
     vault.bulkAppend(
       [1, 2, 3, 4, 5].map((n) => ({
@@ -133,22 +128,6 @@ async function main() {
   );
   console.log(`  wrote ${bulk.length} entries in one call`);
 
-  let summarizeMs = 0;
-  if (vault.hasNilai()) {
-    console.log("\n--- summarize (nilAI) ---");
-    const t = await timed("summarize({scope:'smoke'})", () =>
-      vault.summarize({ scope: "smoke", maxEntries: 15 })
-    );
-    summarizeMs = t.ms;
-    console.log("\n  --- digest ---");
-    console.log(
-      t.result
-        .split("\n")
-        .map((l) => "  " + l)
-        .join("\n")
-    );
-  }
-
   console.log("\n--- delete ---");
   let deleteMs = 0;
   if (scoped.entries.length > 0) {
@@ -159,20 +138,19 @@ async function main() {
   }
 
   console.log("\n=== Latency Summary ===");
-  console.log(`  open:                    ${openMs.toFixed(0)}ms`);
+  console.log(`  open:                       ${openMs.toFixed(0)}ms`);
+  console.log(`  embedder warm (one-time):   ${warmMs.toFixed(0)}ms`);
   console.log(
-    `  append:        median ${percentile(appendTimes, 50).toFixed(0)}ms   p95 ${percentile(appendTimes, 95).toFixed(0)}ms`
+    `  append (auto-tag + embed):  median ${percentile(appendTimes, 50).toFixed(0)}ms   p95 ${percentile(appendTimes, 95).toFixed(0)}ms`
   );
-  console.log(`  bulkAppend(5):           ${bulkMs.toFixed(0)}ms`);
-  console.log(`  update:                  ${updateMs.toFixed(0)}ms`);
-  console.log(`  search (scope):          ${searchMs.toFixed(0)}ms`);
-  console.log(`  search (query+scope):    ${queryMs.toFixed(0)}ms`);
-  console.log(`  search (time-range):     ${timeMs.toFixed(0)}ms`);
-  console.log(`  search (page 1, cursor): ${pageMs.toFixed(0)}ms`);
-  if (summarizeMs > 0) {
-    console.log(`  summarize (nilAI):       ${summarizeMs.toFixed(0)}ms`);
-  }
-  console.log(`  delete:                  ${deleteMs.toFixed(0)}ms`);
+  console.log(
+    `  semantic search:            median ${percentile(semanticTimes, 50).toFixed(0)}ms   p95 ${percentile(semanticTimes, 95).toFixed(0)}ms`
+  );
+  console.log(`  bulkAppend(5):              ${bulkMs.toFixed(0)}ms`);
+  console.log(`  update:                     ${updateMs.toFixed(0)}ms`);
+  console.log(`  search (scope only):        ${scopeMs.toFixed(0)}ms`);
+  console.log(`  search (time-range):        ${timeMs.toFixed(0)}ms`);
+  console.log(`  delete:                     ${deleteMs.toFixed(0)}ms`);
 }
 
 main().catch((err) => {

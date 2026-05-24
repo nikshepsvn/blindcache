@@ -96,7 +96,7 @@ The most interesting future is **nemo-ai's reasoning layer running on top of Bli
 |---|---|
 | `memory_append` | Store one encrypted memory. Auto-tagged via nilAI when configured. |
 | `memory_bulk_append` | Up to 200 entries in a single round trip. |
-| `memory_search` | Plaintext filters (`tags` / `source` / `scope` / `since` / `before` / cursor) server-side. Optional `query` string runs client-side after decryption. |
+| `memory_search` | Plaintext filters (`tags` / `source` / `scope` / `since` / `before` / cursor) server-side. Pass `semantic` for cosine-ranked recall via local embeddings, or `query` for substring match on decrypted content. |
 | `memory_list` | Recent-first listing, scope-aware. |
 | `memory_get` | Fetch a single decrypted memory by id. |
 | `memory_update` | Edit content / tags / source / scope of an entry by id. |
@@ -182,18 +182,32 @@ Numbers from `pnpm smoke` against `nildb-stg-n{1,2,3}.nillion.network` — measu
 
 | Operation | Latency |
 |---|---|
-| `vault.open()` (one-time) | 3-5 s |
-| `append` median / p95 | ~335 ms / ~1.2 s |
-| `bulkAppend(5)` | ~370 ms |
-| `update` (re-encrypt + write) | ~600 ms |
-| `search` (scope filter) | ~330 ms |
-| `search` (query + scope) | ~320 ms |
-| `search` (time-range) | ~310 ms |
-| `search` (cursor page) | ~315 ms |
-| `delete` | ~315 ms |
+| `vault.open()` (one-time) | ~1.9 s |
+| Embedder warm (one-time, after first model download) | ~80 ms |
+| `append` (auto-tag + embed in parallel) median / p95 | ~210 ms / ~310 ms |
+| `semantic search` (embed query + fetch + cosine rank) median / p95 | ~370 ms / ~530 ms |
+| `bulkAppend(5)` | ~235 ms |
+| `update` (re-fetch + re-embed + re-encrypt) | ~750 ms |
+| `search` (scope filter only) | ~195 ms |
+| `delete` | ~200 ms |
 | `summarize` (nilAI) | requires `NILLION_API_KEY` |
 
-Decryption round-trip is verified end-to-end in the smoke test.
+v0.2 made append *faster* than v0.1: local embedding overlaps with the network write, so the SDK isn't idle while shares fan out. Decryption round-trip + semantic top-1 accuracy verified end-to-end in `pnpm smoke`.
+
+## Semantic search (the v0.2 thing)
+
+Pass `semantic` to `memory_search` instead of (or alongside) the older `query` substring filter:
+
+```ts
+await vault.search({ semantic: "payment processing bugs", scope: "work", limit: 5 });
+// → top result is the Stripe webhook note even though "payment" isn't in the text
+```
+
+The query is embedded **locally** with [Xenova/all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (~23 MB q8 quantized, 384-dim, ~2 ms per embed on a laptop CPU). Stored embeddings live as a plaintext array on each memory; cosine ranking runs in the SDK after fetching the structurally-filtered candidate set.
+
+> **Why this matters compared to mem0/Letta/Zep:** all of them send your plaintext to OpenAI's embedding API on every write. BlindCache embeds in-process. Your text never leaves your machine for the embed step. That's a strict privacy upgrade — and you don't pay per-embedding to anyone.
+
+> **Honest footnote:** in v0.2 the *vectors themselves* are stored plaintext on the nodes. An operator scraping all 3 can't reconstruct your text but could see semantic clusters. v0.3 will encrypt embeddings via `%allot`; v0.4 will explore server-side cosine via Nada AI MPC where neither the query nor stored vectors ever get decrypted.
 
 ## Auto-tag and summarize (nilAI)
 

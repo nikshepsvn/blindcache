@@ -4,11 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import type { VaultConfig } from "./config.js";
 import { MEMORY_SCHEMA, SCHEMA_VERSION } from "./schema.js";
 import { Nilai } from "./nilai.js";
+import { Embedder, cosineNormalized, isValidEmbedding } from "./embeddings.js";
 import { parseTime } from "./time.js";
 import { type Cursor, decodeCursor, encodeCursor } from "./cursor.js";
 
 const DEFAULT_SCOPE = "default";
 const MAX_PAGE = 200;
+const SEMANTIC_OVERSCAN = 10; // pull ~10× the requested limit, then rank locally
 
 export type MemoryEntry = {
   id: string;
@@ -17,6 +19,8 @@ export type MemoryEntry = {
   source: string;
   scope: string;
   content: string;
+  embedding?: number[];
+  score?: number; // populated by semantic search
 };
 
 export type AppendInput = {
@@ -28,6 +32,7 @@ export type AppendInput = {
 
 export type SearchInput = {
   query?: string;
+  semantic?: string;
   tags?: string[];
   source?: string;
   scope?: string;
@@ -60,7 +65,8 @@ export class Vault {
     private readonly client: SecretVaultBuilderClient,
     private collectionId: string,
     private readonly builderName: string,
-    private readonly nilai: Nilai | null
+    private readonly nilai: Nilai | null,
+    private readonly embedder: Embedder
   ) {}
 
   hasNilai(): boolean {
@@ -98,11 +104,17 @@ export class Vault {
     );
 
     const nilai = config.tagger ? Nilai.maybeCreate(config.tagger) : null;
-    return new Vault(client, collectionId, builderName, nilai);
+    const embedder = new Embedder(config.embedder);
+    return new Vault(client, collectionId, builderName, nilai, embedder);
   }
 
   getCollectionId(): string {
     return this.collectionId;
+  }
+
+  /** Pre-load the embedding model so first append/search doesn't pay startup cost. */
+  async warmEmbedder(): Promise<void> {
+    await this.embedder.warm();
   }
 
   // ── writes ───────────────────────────────────────────────────────────────
@@ -157,6 +169,10 @@ export class Vault {
     if (input.tags !== undefined) set.tags = input.tags.map((t) => t.toLowerCase());
     if (input.source !== undefined) set.source = input.source;
     if (input.scope !== undefined) set.scope = input.scope;
+    // If content changed, re-embed.
+    if (input.content !== undefined) {
+      set.embedding = await this.embedder.embed(input.content);
+    }
 
     const response = await this.client.updateData({
       collection: this.collectionId,
@@ -200,17 +216,36 @@ export class Vault {
     const filter = this.buildFilter(input);
     const limit = clamp(input.limit ?? 50, 1, MAX_PAGE);
 
+    // Semantic search overscans because ranking happens client-side; the
+    // structured filter narrows the candidate set first.
+    const isSemantic = !!input.semantic;
+    const fetchLimit = isSemantic
+      ? clamp(limit * SEMANTIC_OVERSCAN, limit, MAX_PAGE)
+      : limit + 1;
+
     const response = await this.client.findData({
       collection: this.collectionId,
       filter,
       pagination: {
-        limit: limit + 1, // overscan by 1 to compute nextCursor
+        limit: fetchLimit,
         offset: 0,
         sort: { timestamp: -1, _id: -1 },
       },
     });
 
     let rows = response.data.map(rowToEntry);
+
+    if (isSemantic) {
+      const queryVec = await this.embedder.embed(input.semantic!);
+      const scored = rows
+        .filter((e) => isValidEmbedding(e.embedding))
+        .map((e) => ({ ...e, score: cosineNormalized(queryVec, e.embedding!) }));
+      scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      rows = scored.slice(0, limit);
+      // Semantic mode bypasses cursor pagination — top-K is well-defined,
+      // "next page" isn't.
+      return { entries: rows };
+    }
 
     if (input.query) {
       const q = input.query.toLowerCase();
@@ -262,8 +297,11 @@ export class Vault {
     autoTag: boolean
   ): Promise<MemoryEntry> {
     const provided = input.tags ?? [];
-    const suggested =
-      autoTag && this.nilai ? await this.nilai.suggestTags(input.content) : [];
+    // Auto-tag and embedding run in parallel — both call the model once.
+    const [suggested, embedding] = await Promise.all([
+      autoTag && this.nilai ? this.nilai.suggestTags(input.content) : Promise.resolve([] as string[]),
+      this.embedder.embed(input.content),
+    ]);
     return {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
@@ -271,6 +309,7 @@ export class Vault {
       source: input.source ?? "unknown",
       scope: input.scope ?? DEFAULT_SCOPE,
       content: input.content,
+      embedding,
     };
   }
 
@@ -350,7 +389,7 @@ async function ensureCollection(
 }
 
 function toStoredRow(e: MemoryEntry): Record<string, unknown> {
-  return {
+  const row: Record<string, unknown> = {
     _id: e.id,
     timestamp: e.timestamp,
     tags: e.tags,
@@ -358,6 +397,8 @@ function toStoredRow(e: MemoryEntry): Record<string, unknown> {
     scope: e.scope,
     content: { "%allot": e.content },
   };
+  if (e.embedding) row.embedding = e.embedding;
+  return row;
 }
 
 function rowToEntry(row: Record<string, unknown>): MemoryEntry {
@@ -370,6 +411,7 @@ function rowToEntry(row: Record<string, unknown>): MemoryEntry {
     if (typeof c["%share"] === "string") text = c["%share"] as string;
     else if (typeof c.value === "string") text = c.value as string;
   }
+  const embedding = Array.isArray(row.embedding) ? (row.embedding as number[]) : undefined;
   return {
     id: String(row._id ?? ""),
     timestamp: String(row.timestamp ?? ""),
@@ -377,6 +419,7 @@ function rowToEntry(row: Record<string, unknown>): MemoryEntry {
     source: String(row.source ?? "unknown"),
     scope: String(row.scope ?? DEFAULT_SCOPE),
     content: text,
+    embedding,
   };
 }
 

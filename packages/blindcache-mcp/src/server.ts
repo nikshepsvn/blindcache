@@ -88,9 +88,15 @@ function buildServer(vault: Vault): McpServer {
     {
       title: "Search memories",
       description:
-        "Server filters on tags/source/scope/timestamp (plaintext). The optional 'query' is applied client-side after decryption. Supports cursor pagination.",
+        "Server filters on tags/source/scope/timestamp (plaintext). For ranking: pass `semantic` for cosine-ranked recall via local embeddings (no plaintext leaves the SDK), or `query` for naive substring match on decrypted content. Cursor pagination applies to non-semantic searches.",
       inputSchema: {
-        query: z.string().optional(),
+        semantic: z
+          .string()
+          .optional()
+          .describe(
+            "Semantic query — embedded locally, ranked by cosine against stored embeddings. Preferred over 'query' for real recall."
+          ),
+        query: z.string().optional().describe("Substring filter on decrypted content (fallback)."),
         tags: z.array(z.string()).optional(),
         source: z.string().optional(),
         scope: z.string().optional(),
