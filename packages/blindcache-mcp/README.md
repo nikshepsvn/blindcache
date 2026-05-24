@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#tools">Tools</a> ·
+  <a href="#what-we-use-from-nillion-and-what-we-dont-yet">Stack</a> ·
   <a href="#background-and-where-nemo-ai-fits-in">Background</a> ·
   <a href="#performance">Performance</a> ·
   <a href="#wire-into-claude-code">Claude Code</a> ·
@@ -49,6 +50,30 @@ Every AI agent today re-asks you for the same context. Mem0, Letta, Zep, ChatGPT
 ```
 
 Plaintext only ever exists inside the MCP process and (briefly, inside an enclave) inside nilAI when auto-tagging is on. Nothing else.
+
+## What we use from Nillion (and what we don't, yet)
+
+The Blind Computer ships ~8 modules. BlindCache uses 4 today; the other 4 are the Tier 2 / Tier 3 roadmap.
+
+### Today
+
+| Module | What it gives BlindCache |
+|---|---|
+| **[nilDB](https://docs.nillion.com/blind-computer/build/storage/key-concepts)** (via `@nillion/secretvaults`) | The vault itself. Content secret-shared across 3 nodes via Shamir; plaintext fields (`tags`, `source`, `scope`, `timestamp`, `embedding`) stay queryable server-side via MongoDB-style aggregation. |
+| **[Blindfold](https://github.com/NillionNetwork/blindfold)** | The share-splitting primitive that powers the `%allot` (write marker) / `%share` (storage marker) pattern. Per-node encryption fanout is automatic. |
+| **NUC tokens** (via `@nillion/nuc`) | Node-specific JWTs for auth + delegation. The SDK mints fresh per request; same primitive will power Tier 2 OAuth-shape scope handoff. |
+| **[nilAI](https://docs.nillion.com/blind-computer/build/llms/quickstart)** (via `@nillion/nilai-ts`) | TEE-hosted OpenAI-compatible LLM. Powers auto-tagging on `memory_append` and `memory_summary`. Optional — set `NILLION_API_KEY` to enable. |
+
+### Not yet (the roadmap)
+
+| Module | What it would unlock |
+|---|---|
+| **[nilCC](https://docs.nillion.com/blind-computer/build/compute/api-reference)** | Confidential containers — host scheduled jobs (consolidation, dedup, nightly reflection digests, an OAuth-style consent server) in a TEE with attestation, no infra to run. |
+| **[Nada AI / Nada Numpy](https://github.com/NillionNetwork/nada-ai)** | MPC operations on encrypted data. The path to **server-side cosine over encrypted vectors** — neither the query nor the stored embeddings ever decrypt. The "no one else can build this" version of semantic search. |
+| **SecretDataAnalytics** | Aggregate queries over encrypted content. "Count of memories containing word X" without revealing the content or X. Closes the metadata-leakage footnote. |
+| **[Blacklight](https://nillion.com/news/nillion-now-on-ethereum/)** | Verification layer (Feb 2026 launch). Cryptographic receipts proving each vault operation ran correctly. Provable trust, not promised trust. |
+
+See [What's next](#whats-next) for the order I'd ship these.
 
 ## Background — and where nemo-ai fits in
 
@@ -224,12 +249,16 @@ If `NILLION_API_KEY` is set, every `memory_append` is augmented with 2-5 LLM-sug
 
 ```
 packages/
-  blindcache-core/   Vault wrapper over @nillion/secretvaults — CRUD, bulk, summarize, auto-tag
-  blindcache-mcp/    MCP server (stdio + HTTP) exposing memory_* tools
+  blindcache-core/         Vault wrapper over @nillion/secretvaults — CRUD, bulk, summarize, auto-tag, local embeddings
+  blindcache-mcp/          MCP server (stdio + HTTP) exposing memory_* tools
 scripts/
-  fix-libsodium.mjs  Postinstall workaround for an upstream libsodium ESM packaging bug
+  fix-libsodium.mjs        Postinstall workaround for an upstream libsodium ESM packaging bug
 docs/
-  banner.jpg         The wallpaper above
+  banner.jpg               The wallpaper at the top
+  blindcache-v0.2.mp4      v0.2 launch video (scene-based, 25s)
+  blindcache-v0.2.gif      Same, as a gif
+  build-launch-video.sh    ffmpeg pipeline that produces the above (reproducible)
+  v0.2-demo.{sh,tape,gif}  vhs-rendered terminal demo of the smoke output
 ```
 
 ## Gotchas (so the next person doesn't waste a day)
