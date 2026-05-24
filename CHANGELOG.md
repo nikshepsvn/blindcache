@@ -4,7 +4,10 @@ All notable changes to BlindCache. Format loosely follows [Keep a Changelog](htt
 
 ## [0.1.0] — 2026-05-22
 
-Initial public release. Phase 0 spike + Tier 1 features.
+Initial public release. Phase 0 spike + Tier 1 features. Published to npm 2026-05-24:
+
+- [`blindcache-mcp`](https://www.npmjs.com/package/blindcache-mcp) — run with `npx blindcache-mcp`
+- [`blindcache-core`](https://www.npmjs.com/package/blindcache-core) — `npm i blindcache-core`
 
 ### Added
 

@@ -10,8 +10,9 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/blindcache-mcp"><img src="https://img.shields.io/npm/v/blindcache-mcp?label=blindcache-mcp&color=blue" alt="npm: blindcache-mcp" /></a>
+  <a href="https://www.npmjs.com/package/blindcache-core"><img src="https://img.shields.io/npm/v/blindcache-core?label=blindcache-core&color=blue" alt="npm: blindcache-core" /></a>
   <a href="https://github.com/nikshepsvn/blindcache/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache 2.0" /></a>
-  <a href="https://github.com/nikshepsvn/blindcache/blob/main/CHANGELOG.md"><img src="https://img.shields.io/badge/release-v0.1.0-blue.svg" alt="v0.1.0" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-blue.svg" alt="MCP compatible" /></a>
   <a href="https://nillion.com"><img src="https://img.shields.io/badge/Nillion-Blind%20Computer-blue.svg" alt="Nillion Blind Computer" /></a>
 </p>
@@ -105,20 +106,24 @@ The most interesting future is **nemo-ai's reasoning layer running on top of Bli
 ## Quick start
 
 ```bash
-pnpm install
-pnpm smoke          # full CRUD + filters + cursor + update + bulk against testnet
+npx blindcache-mcp        # stdio MCP server, ready to wire into any client
 ```
 
-That generates an ephemeral builder keypair, registers with Nillion testnet, creates a collection, writes 10 encrypted memories, runs every filter variant, paginates, updates, bulk-inserts, and prints latency. No env vars required.
+That's it. First run takes a few seconds (npm download); subsequent runs start in <1s. Without env vars, an ephemeral builder key is generated and a new vault is created on the Nillion testnet — fine for kicking the tires.
 
-For persistent memory across restarts, get a real key:
+For persistent memory across restarts, generate a real key once and pass it in:
 
 ```bash
-pnpm keygen         # prints PRIVATE KEY + DID
-# paste the key into .env as NIL_BUILDER_PRIVATE_KEY
-pnpm build
-pnpm dev:mcp        # stdio
+# Generate a fresh 32-byte hex private key
+NIL_BUILDER_PRIVATE_KEY=$(openssl rand -hex 32)
+
+# Run with the key set (export it or inline it as below)
+NIL_BUILDER_PRIVATE_KEY=$NIL_BUILDER_PRIVATE_KEY npx blindcache-mcp
 ```
+
+Save the hex key somewhere — it's the only way back into the same vault.
+
+> Working from source instead? `git clone` this repo, then `pnpm install && pnpm smoke` runs the full CRUD + filters + cursor + update + bulk roundtrip against testnet. `pnpm keygen` prints a fresh key; `pnpm dev:mcp` starts the server.
 
 ## Wire into Claude Code
 
@@ -128,8 +133,8 @@ Add to `~/.claude/claude_desktop_config.json` (or a per-project `.mcp.json`):
 {
   "mcpServers": {
     "blindcache": {
-      "command": "node",
-      "args": ["/absolute/path/to/blindcache/packages/blindcache-mcp/dist/server.js"],
+      "command": "npx",
+      "args": ["-y", "blindcache-mcp"],
       "env": {
         "NIL_BUILDER_PRIVATE_KEY": "your-hex-private-key-here",
         "NILLION_API_KEY": "optional — unlocks auto-tag + memory_summary"
