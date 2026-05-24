@@ -1,6 +1,26 @@
 {
   "name": "blindcache-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Vault wrapper over @nillion/secretvaults — encrypted memory CRUD, bulk, summarize, auto-tag. Core library for BlindCache.",
+  "keywords": [
+    "nillion",
+    "blind-computer",
+    "mcp",
+    "encrypted-storage",
+    "ai-memory",
+    "agent-memory",
+    "mpc",
+    "privacy"
+  ],
+  "license": "Apache-2.0",
+  "author": "Nikshep Svn <nikshepsvn@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nikshepsvn/blindcache.git",
+    "directory": "packages/blindcache-core"
+  },
+  "homepage": "https://github.com/nikshepsvn/blindcache#readme",
+  "bugs": "https://github.com/nikshepsvn/blindcache/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,10 +30,16 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "smoke": "tsx src/smoke.ts",
-    "keygen": "tsx src/keygen.ts"
+    "keygen": "tsx src/keygen.ts",
+    "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@nillion/nilai-ts": "^0.3.1",
@@ -24,7 +50,6 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/uuid": "^10.0.0",
-    "blindcache-core": "link:.",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }

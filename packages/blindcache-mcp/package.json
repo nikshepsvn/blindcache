@@ -1,19 +1,47 @@
 {
   "name": "blindcache-mcp",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "MCP server for BlindCache — encrypted, portable AI memory backed by Nillion's Blind Computer. Drops into Claude Code, Cursor, any MCP-compatible client.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "nillion",
+    "blind-computer",
+    "ai-memory",
+    "agent-memory",
+    "encrypted-storage",
+    "claude-code",
+    "cursor",
+    "privacy"
+  ],
+  "license": "Apache-2.0",
+  "author": "Nikshep Svn <nikshepsvn@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nikshepsvn/blindcache.git",
+    "directory": "packages/blindcache-mcp"
+  },
+  "homepage": "https://github.com/nikshepsvn/blindcache#readme",
+  "bugs": "https://github.com/nikshepsvn/blindcache/issues",
   "type": "module",
   "bin": {
     "blindcache-mcp": "./dist/server.js"
   },
   "main": "./dist/server.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "blindcache-core": "workspace:*",
+    "blindcache-core": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {
