@@ -9,7 +9,7 @@ function formatContent(content: string) {
       return (
         <strong
           key={i}
-          className="text-[var(--color-accent-bright)] font-semibold glow-soft"
+          className="text-[var(--color-accent-bright)] font-medium"
         >
           {p.slice(2, -2)}
         </strong>
@@ -29,21 +29,21 @@ export function ChatThread({
 }) {
   return (
     <div className="flex-1 overflow-y-auto thin-scroll">
-      <div className="max-w-[780px] mx-auto px-10 py-10 space-y-8">
+      <div className="max-w-[720px] mx-auto px-8 py-10 space-y-7">
         {messages.map((msg) => {
           const isUser = msg.role === "user";
-          const label = isUser ? "USER" : "VENICE";
-          const labelColor = isUser
-            ? "text-[var(--color-text-tertiary)]"
-            : "text-[var(--color-accent-bright)] glow-soft";
-
           return (
             <div key={msg.id} className="space-y-2">
-              {/* Speaker line */}
-              <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em]">
-                <span className={labelColor}>
-                  {isUser ? "▸ " : "◂ "}
-                  {label}
+              {/* Speaker line — minimal */}
+              <div className="flex items-center gap-3 font-mono text-[11px] text-[var(--color-text-tertiary)]">
+                <span
+                  className={
+                    isUser
+                      ? "text-[var(--color-text-secondary)]"
+                      : "text-[var(--color-accent)]"
+                  }
+                >
+                  {isUser ? "you" : "venice"}
                 </span>
                 {msg.injectedMemoryIds && msg.injectedMemoryIds.length > 0 && (
                   <button
@@ -51,53 +51,23 @@ export function ChatThread({
                       onHoverMemoryIds(msg.injectedMemoryIds!)
                     }
                     onMouseLeave={() => onHoverMemoryIds([])}
-                    className="text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition border-l border-[var(--color-border)] pl-3"
+                    className="hover:text-[var(--color-accent)] transition"
                   >
-                    [ PULLED {msg.injectedMemoryIds.length} MEM →
+                    {msg.injectedMemoryIds.length === 1
+                      ? "1 memory pulled"
+                      : `${msg.injectedMemoryIds.length} memories pulled`}
                   </button>
                 )}
-                <span className="text-[var(--color-text-tertiary)] flex-1 overflow-hidden whitespace-nowrap">
-                  ──────────────────────────────────
-                </span>
-                <span className="text-[var(--color-text-tertiary)]">
-                  {msg.timestamp}
-                </span>
+                <span className="ml-auto">{msg.timestamp}</span>
               </div>
 
               {/* Content */}
-              <div
-                className={`text-[14.5px] leading-[1.75] whitespace-pre-wrap font-mono ${
-                  isUser
-                    ? "text-[var(--color-text-primary)] pl-4 border-l border-[var(--color-border-strong)]"
-                    : "text-[var(--color-text-primary)] pl-4 border-l border-[var(--color-accent-dim)]"
-                }`}
-              >
+              <div className="text-[14.5px] leading-[1.75] whitespace-pre-wrap font-mono text-[var(--color-text-primary)]">
                 {formatContent(msg.content)}
               </div>
             </div>
           );
         })}
-
-        {/* Streaming indicator */}
-        <div className="space-y-2 opacity-60">
-          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em]">
-            <span className="text-[var(--color-accent-bright)] glow-soft">
-              ◂ VENICE
-            </span>
-            <span className="text-[var(--color-text-tertiary)] flex-1 overflow-hidden whitespace-nowrap">
-              ──────────────────────────────────
-            </span>
-            <span className="text-[var(--color-success)]">STREAMING</span>
-          </div>
-          <div className="pl-4 border-l border-[var(--color-accent-dim)] py-1 flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 bg-[var(--color-accent-bright)] glow-soft pulse-dot" />
-            <span className="h-1.5 w-1.5 bg-[var(--color-accent-bright)] glow-soft pulse-dot pulse-dot-2" />
-            <span className="h-1.5 w-1.5 bg-[var(--color-accent-bright)] glow-soft pulse-dot pulse-dot-3" />
-            <span className="ml-2 font-mono text-[11px] text-[var(--color-text-tertiary)] uppercase tracking-[0.1em]">
-              awaiting tokens · TEE inference
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
