@@ -7,6 +7,7 @@
     "postinstall": "node scripts/fix-libsodium.mjs",
     "build": "pnpm -r build",
     "dev:mcp": "pnpm --filter blindcache-mcp dev",
+    "dev:chat": "pnpm --filter blindchat dev",
     "smoke": "pnpm --filter blindcache-core smoke",
     "keygen": "pnpm --filter blindcache-core keygen"
   }
