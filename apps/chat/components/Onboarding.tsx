@@ -8,7 +8,8 @@ type Step = {
   num: string;
   eyebrow: string;
   title: string;
-  image?: string; // public path to a banner image
+  subtitle?: string;
+  image?: string;
   body: ReactNode;
 };
 
@@ -26,43 +27,55 @@ export function OnboardingProvider() {
     {
       num: "01 / 04",
       eyebrow: "welcome",
-      title: "blindchat",
+      title: "chat nothing reads.",
+      subtitle:
+        "the whole app runs in your browser. no backend on our side, no provider who can read your prompts or your memory.",
       image: "/onboarding/01-welcome.jpg",
       body: (
-        <div className="space-y-3">
-          <p className="font-mono text-[13.5px] leading-[1.65] text-[var(--color-text-primary)]">
-            private chat with portable memory.
-          </p>
-          <p className="font-mono text-[12.5px] leading-[1.65] text-[var(--color-text-secondary)]">
-            three layers stitched together: an LLM running in a hardware
-            enclave, encrypted memory sharded across an independent network,
-            and embeddings computed in your browser. no backend on our side —
-            your browser is the whole app.
-          </p>
+        <div className="space-y-2 mt-3">
+          <Row
+            num="01"
+            tag="inference"
+            where="venice · TEE"
+            detail="prompts processed inside a hardware enclave the provider can't read."
+          />
+          <Row
+            num="02"
+            tag="memory"
+            where="blindcache · nillion"
+            detail="content secret-shared across 4 operators on 3 continents."
+          />
+          <Row
+            num="03"
+            tag="embeddings"
+            where="local · transformers.js"
+            detail="your text never leaves the SDK to be embedded."
+          />
         </div>
       ),
     },
     {
       num: "02 / 04",
       eyebrow: "the stack",
-      title: "how privacy works",
+      title: "how privacy actually works",
+      subtitle: "three independent privacy primitives, stitched together.",
       image: "/onboarding/02-stack.jpg",
       body: (
-        <div className="space-y-2.5">
-          <Layer
+        <div className="space-y-2 mt-3">
+          <Row
             tag="inference"
-            where="Venice"
-            detail="TEE-hosted models — your prompt is processed inside an enclave the provider can't read. no logs."
+            where="venice"
+            detail="LLM runs inside a Trusted Execution Environment. the GPU operator can't see your prompt; nillion verifies it via remote attestation."
           />
-          <Layer
+          <Row
             tag="memory"
-            where="BlindCache · Nillion"
-            detail="content split into Shamir shares across 4 mainnet operators on 3 continents. they would have to collude to decrypt."
+            where="blindcache"
+            detail="content split into Shamir shares across nilDB nodes. operators would have to collude to decrypt — and they sit in different jurisdictions."
           />
-          <Layer
+          <Row
             tag="embeddings"
-            where="local · in-browser"
-            detail="Xenova all-MiniLM-L6-v2 runs in your tab via Transformers.js. your text never leaves the SDK to be embedded."
+            where="in-browser"
+            detail="Xenova all-MiniLM-L6-v2 runs in your tab via Transformers.js. semantic search happens before anything leaves your machine."
           />
         </div>
       ),
@@ -70,53 +83,71 @@ export function OnboardingProvider() {
     {
       num: "03 / 04",
       eyebrow: "honest",
-      title: "what's not perfectly private",
+      title: "what we don't defend against",
+      subtitle:
+        "no privacy claim is unconditional. the three real footnotes:",
       image: "/onboarding/03-honest.jpg",
       body: (
-        <ul className="font-mono text-[12px] leading-[1.65] text-[var(--color-text-secondary)] space-y-2.5">
-          <li>
-            <span className="text-[var(--color-warn)]">·</span>{" "}
-            <b className="text-[var(--color-text-primary)]">metadata is plaintext</b>{" "}
-            — tags, scope, and timestamps need to be queryable, so they sit on
-            each nilDB node un-sharded. any single node operator can read
-            them.
-          </li>
-          <li>
-            <span className="text-[var(--color-warn)]">·</span>{" "}
-            <b className="text-[var(--color-text-primary)]">browser RAM</b> —
-            what you type lives in your tab&apos;s memory until you close it.
-          </li>
-          <li>
-            <span className="text-[var(--color-warn)]">·</span>{" "}
-            <b className="text-[var(--color-text-primary)]">this page is the attack surface</b>{" "}
-            — a compromised browser, malicious extension, or hijacked domain
-            can read everything you do here.
-          </li>
-        </ul>
+        <div className="space-y-2 mt-3">
+          <Row
+            variant="warn"
+            num="!"
+            tag="metadata"
+            where="single node"
+            detail="tags, scope, timestamps live as plaintext (so they're queryable). any one nilDB operator can see semantic clusters."
+          />
+          <Row
+            variant="warn"
+            num="!"
+            tag="browser ram"
+            where="your tab"
+            detail="anything you type lives in your tab's memory until you close it. memory exfil via tab dumps is possible."
+          />
+          <Row
+            variant="warn"
+            num="!"
+            tag="this page"
+            where="attack surface"
+            detail="a malicious extension, compromised browser, or hijacked domain can read everything you do on this site."
+          />
+        </div>
       ),
     },
     {
       num: "04 / 04",
       eyebrow: "your keys",
-      title: "you hold them",
+      title: "you hold them.",
+      subtitle:
+        "two keys do all the work — and neither ever crosses our wire.",
       image: "/onboarding/04-keys.jpg",
       body: (
-        <div className="space-y-3">
-          <p className="font-mono text-[12.5px] leading-[1.65] text-[var(--color-text-secondary)]">
-            two keys do all the work: a Venice API key (TEE access) and a
-            Nillion private key (vault identity). in this build they live in{" "}
-            <span className="text-[var(--color-accent)]">.env.local</span>. in
-            production they&apos;ll live in IndexedDB encrypted behind a
-            passkey — and neither ever crosses our wire.
-          </p>
-          <div className="font-mono text-[11px] text-[var(--color-text-tertiary)] pt-2 border-t border-[var(--color-border)] flex items-center gap-1.5">
+        <div className="space-y-2 mt-3">
+          <Row
+            num="01"
+            tag="venice key"
+            where="TEE access"
+            detail="bearer token to your provider's enclave. talks to Venice directly from your tab."
+          />
+          <Row
+            num="02"
+            tag="nillion key"
+            where="vault identity"
+            detail="signs NUC tokens for your nilDB shards. your DID is derived from it."
+          />
+          <div className="flex items-center gap-2 pt-3 mt-1 border-t border-[var(--color-border)] font-mono text-[10.5px] text-[var(--color-text-tertiary)]">
             <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)] rounded-full" />
-            <span>all keys client-side · no accounts · no telemetry</span>
+            <span>
+              client-side only · no accounts · no telemetry · production keys
+              live in IndexedDB behind a passkey
+            </span>
           </div>
         </div>
       ),
     },
   ];
+
+  const stepCountRef = useRef(steps.length);
+  stepCountRef.current = steps.length;
 
   useEffect(() => {
     try {
@@ -124,8 +155,6 @@ export function OnboardingProvider() {
     } catch {
       setOpen(true);
     }
-    // Allow external triggers (e.g., sidebar "intro" link) to re-open the
-    // modal regardless of localStorage state.
     function onOpen() {
       setIdx(0);
       setOpen(true);
@@ -133,10 +162,6 @@ export function OnboardingProvider() {
     window.addEventListener(OPEN_ONBOARDING_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_ONBOARDING_EVENT, onOpen);
   }, []);
-
-  // Keep step length in a ref so the once-registered listener uses fresh data.
-  const stepCountRef = useRef(steps.length);
-  stepCountRef.current = steps.length;
 
   function dismiss() {
     try {
@@ -157,8 +182,6 @@ export function OnboardingProvider() {
     setIdx((i) => Math.max(0, i - 1));
   }
 
-  // Single listener that survives idx changes — avoids React 19 StrictMode
-  // double-registration causing one Enter to advance two steps.
   useEffect(() => {
     if (!open) return;
     function onKey(e: globalThis.KeyboardEvent) {
@@ -190,17 +213,17 @@ export function OnboardingProvider() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-[600px] h-[560px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
+        className="w-[620px] h-[600px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
       >
-        {/* Top bar: progress + skip */}
-        <div className="px-6 pt-5 pb-4 flex items-center justify-between shrink-0">
+        {/* Top bar */}
+        <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             {steps.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setIdx(i)}
-                aria-label={`go to step ${i + 1}`}
-                className={`h-1.5 w-6 transition ${
+                aria-label={`step ${i + 1}`}
+                className={`h-1 w-7 transition ${
                   i === idx
                     ? "bg-[var(--color-accent)]"
                     : i < idx
@@ -221,9 +244,12 @@ export function OnboardingProvider() {
           </button>
         </div>
 
-        {/* Banner image — fixed slot */}
+        {/* Banner */}
         <div className="px-6 pb-3 shrink-0">
-          <div className="relative w-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-base)]" style={{ aspectRatio: "4 / 1" }}>
+          <div
+            className="relative w-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-base)]"
+            style={{ aspectRatio: "4 / 1" }}
+          >
             {step.image && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -238,23 +264,28 @@ export function OnboardingProvider() {
           </div>
         </div>
 
-        {/* Body — fills remaining space, scrolls only if needed */}
-        <div className="px-7 pt-2 pb-5 flex-1 overflow-y-auto thin-scroll min-h-0">
+        {/* Body */}
+        <div className="px-7 pt-1 pb-4 flex-1 overflow-y-auto thin-scroll min-h-0">
           <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.22em] mb-1.5">
             {step.eyebrow}
           </div>
-          <h2 className="font-mono text-[18px] font-medium text-[var(--color-text-primary)] mb-3.5">
+          <h2 className="font-mono text-[18px] font-medium text-[var(--color-text-primary)] mb-2 leading-snug">
             {step.title}
           </h2>
+          {step.subtitle && (
+            <p className="font-mono text-[12px] leading-[1.55] text-[var(--color-text-secondary)] mb-1">
+              {step.subtitle}
+            </p>
+          )}
           {step.body}
         </div>
 
-        {/* Footer: back / continue */}
-        <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between gap-3 shrink-0">
+        {/* Footer */}
+        <div className="px-6 py-3.5 border-t border-[var(--color-border)] flex items-center justify-between gap-3 shrink-0">
           <button
             onClick={back}
             disabled={idx === 0}
-            className="font-mono text-[11px] px-3 py-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:text-[var(--color-text-faint)] disabled:cursor-not-allowed transition"
+            className="font-mono text-[11px] px-2 py-1 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:text-[var(--color-text-faint)] disabled:cursor-not-allowed transition"
           >
             ← back
           </button>
@@ -265,7 +296,7 @@ export function OnboardingProvider() {
             onClick={next}
             className="font-mono text-[11px] uppercase tracking-[0.16em] px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-bright)] text-[var(--color-base)] font-medium transition"
           >
-            {isLast ? "start →" : "continue →"}
+            {isLast ? "enter →" : "continue →"}
           </button>
         </div>
       </div>
@@ -273,19 +304,42 @@ export function OnboardingProvider() {
   );
 }
 
-function Layer({
+function Row({
+  num,
   tag,
   where,
   detail,
+  variant = "default",
 }: {
+  num?: string;
   tag: string;
   where: string;
   detail: string;
+  variant?: "default" | "warn";
 }) {
+  const accent =
+    variant === "warn"
+      ? "text-[var(--color-warn)]"
+      : "text-[var(--color-accent)]";
+  const border =
+    variant === "warn"
+      ? "border-[var(--color-warn)]/30"
+      : "border-[var(--color-accent-dim)]";
   return (
-    <div className="flex items-start gap-3 border-l-2 border-[var(--color-accent-dim)] pl-3 py-1">
-      <div className="shrink-0 w-[105px]">
-        <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.14em]">
+    <div
+      className={`flex items-start gap-3 border-l-2 ${border} pl-3 py-1`}
+    >
+      {num && (
+        <div
+          className={`shrink-0 w-4 font-mono text-[11px] ${accent} mt-px text-center`}
+        >
+          {num}
+        </div>
+      )}
+      <div className="shrink-0 w-[112px]">
+        <div
+          className={`font-mono text-[10px] uppercase tracking-[0.14em] ${accent}`}
+        >
           {tag}
         </div>
         <div className="font-mono text-[9.5px] text-[var(--color-text-tertiary)] mt-0.5">
