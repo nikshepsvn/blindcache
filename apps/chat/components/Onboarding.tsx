@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const STORAGE_KEY = "bc_onboarding_seen_v1";
 
 type Step = {
-  num: string;
+  slug: string;
   eyebrow: string;
   title: string;
   subtitle?: string;
@@ -15,139 +15,127 @@ type Step = {
 
 export const OPEN_ONBOARDING_EVENT = "blindchat:open-onboarding";
 
+const STEPS: Step[] = [
+  {
+    slug: "welcome",
+    eyebrow: "WELCOME",
+    title: "chat nothing reads",
+    subtitle:
+      "the whole app runs in your browser. no backend on our side; no provider that can read your prompts or memory.",
+    image: "/onboarding/01-welcome.jpg",
+    body: (
+      <div className="space-y-1 mt-3">
+        <Row
+          num="01"
+          tag="inference"
+          where="venice · TEE"
+          detail="prompts run inside a hardware enclave the provider can't read."
+        />
+        <Row
+          num="02"
+          tag="memory"
+          where="blindcache · nillion"
+          detail="content secret-shared across 4 operators on 3 continents."
+        />
+        <Row
+          num="03"
+          tag="embed"
+          where="local · transformers.js"
+          detail="text never leaves the tab to be vectorized."
+        />
+      </div>
+    ),
+  },
+  {
+    slug: "stack",
+    eyebrow: "THE STACK",
+    title: "three primitives, stitched",
+    subtitle:
+      "the seam between an enclave LLM, a sharded vault, and a local embedder.",
+    image: "/onboarding/02-stack.jpg",
+    body: (
+      <div className="space-y-1 mt-3">
+        <Row
+          tag="inference"
+          where="venice"
+          detail="LLM lives inside a TEE. nillion verifies the enclave via remote attestation before any prompt is sent."
+        />
+        <Row
+          tag="memory"
+          where="blindcache"
+          detail="Shamir-sharded across independent nilDB nodes. operators must collude across jurisdictions to decrypt."
+        />
+        <Row
+          tag="embed"
+          where="in-browser"
+          detail="Xenova all-MiniLM-L6-v2 in your tab. semantic search resolved before anything leaves your machine."
+        />
+      </div>
+    ),
+  },
+  {
+    slug: "honest",
+    eyebrow: "HONEST",
+    title: "what isn't private",
+    subtitle:
+      "no privacy claim is unconditional. these are the three real footnotes.",
+    image: "/onboarding/03-honest.jpg",
+    body: (
+      <div className="space-y-1 mt-3">
+        <Row
+          variant="warn"
+          tag="metadata"
+          where="single node"
+          detail="tags, scope, timestamps live as plaintext for queryability. any single operator can read them."
+        />
+        <Row
+          variant="warn"
+          tag="browser ram"
+          where="your tab"
+          detail="anything typed sits in tab memory until you close it. tab dumps are in scope for an attacker."
+        />
+        <Row
+          variant="warn"
+          tag="this page"
+          where="attack surface"
+          detail="a malicious extension or compromised browser reads everything you do on this site."
+        />
+      </div>
+    ),
+  },
+  {
+    slug: "keys",
+    eyebrow: "YOUR KEYS",
+    title: "you hold them",
+    subtitle: "two keys do all the work. neither ever crosses our wire.",
+    image: "/onboarding/04-keys.jpg",
+    body: (
+      <div className="space-y-1 mt-3">
+        <Row
+          tag="venice key"
+          where="TEE access"
+          detail="bearer token to your provider's enclave. talks to Venice directly from your tab."
+        />
+        <Row
+          tag="nillion key"
+          where="vault identity"
+          detail="signs NUC tokens for your nilDB shards. your DID is derived from it."
+        />
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--color-border)] font-mono text-[10.5px] text-[var(--color-text-tertiary)]">
+          <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)]" />
+          <span>
+            client-side only · in production, keys live in IndexedDB behind a
+            passkey
+          </span>
+        </div>
+      </div>
+    ),
+  },
+];
+
 export function OnboardingProvider() {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
-  const idxRef = useRef(0);
-  useEffect(() => {
-    idxRef.current = idx;
-  }, [idx]);
-
-  const steps: Step[] = [
-    {
-      num: "01 / 04",
-      eyebrow: "welcome",
-      title: "chat nothing reads.",
-      subtitle:
-        "the whole app runs in your browser. no backend on our side, no provider who can read your prompts or your memory.",
-      image: "/onboarding/01-welcome.jpg",
-      body: (
-        <div className="space-y-2 mt-3">
-          <Row
-            num="01"
-            tag="inference"
-            where="venice · TEE"
-            detail="prompts processed inside a hardware enclave the provider can't read."
-          />
-          <Row
-            num="02"
-            tag="memory"
-            where="blindcache · nillion"
-            detail="content secret-shared across 4 operators on 3 continents."
-          />
-          <Row
-            num="03"
-            tag="embeddings"
-            where="local · transformers.js"
-            detail="your text never leaves the SDK to be embedded."
-          />
-        </div>
-      ),
-    },
-    {
-      num: "02 / 04",
-      eyebrow: "the stack",
-      title: "how privacy actually works",
-      subtitle: "three independent privacy primitives, stitched together.",
-      image: "/onboarding/02-stack.jpg",
-      body: (
-        <div className="space-y-2 mt-3">
-          <Row
-            tag="inference"
-            where="venice"
-            detail="LLM runs inside a Trusted Execution Environment. the GPU operator can't see your prompt; nillion verifies it via remote attestation."
-          />
-          <Row
-            tag="memory"
-            where="blindcache"
-            detail="content split into Shamir shares across nilDB nodes. operators would have to collude to decrypt — and they sit in different jurisdictions."
-          />
-          <Row
-            tag="embeddings"
-            where="in-browser"
-            detail="Xenova all-MiniLM-L6-v2 runs in your tab via Transformers.js. semantic search happens before anything leaves your machine."
-          />
-        </div>
-      ),
-    },
-    {
-      num: "03 / 04",
-      eyebrow: "honest",
-      title: "what we don't defend against",
-      subtitle:
-        "no privacy claim is unconditional. the three real footnotes:",
-      image: "/onboarding/03-honest.jpg",
-      body: (
-        <div className="space-y-2 mt-3">
-          <Row
-            variant="warn"
-            num="!"
-            tag="metadata"
-            where="single node"
-            detail="tags, scope, timestamps live as plaintext (so they're queryable). any one nilDB operator can see semantic clusters."
-          />
-          <Row
-            variant="warn"
-            num="!"
-            tag="browser ram"
-            where="your tab"
-            detail="anything you type lives in your tab's memory until you close it. memory exfil via tab dumps is possible."
-          />
-          <Row
-            variant="warn"
-            num="!"
-            tag="this page"
-            where="attack surface"
-            detail="a malicious extension, compromised browser, or hijacked domain can read everything you do on this site."
-          />
-        </div>
-      ),
-    },
-    {
-      num: "04 / 04",
-      eyebrow: "your keys",
-      title: "you hold them.",
-      subtitle:
-        "two keys do all the work — and neither ever crosses our wire.",
-      image: "/onboarding/04-keys.jpg",
-      body: (
-        <div className="space-y-2 mt-3">
-          <Row
-            num="01"
-            tag="venice key"
-            where="TEE access"
-            detail="bearer token to your provider's enclave. talks to Venice directly from your tab."
-          />
-          <Row
-            num="02"
-            tag="nillion key"
-            where="vault identity"
-            detail="signs NUC tokens for your nilDB shards. your DID is derived from it."
-          />
-          <div className="flex items-center gap-2 pt-3 mt-1 border-t border-[var(--color-border)] font-mono text-[10.5px] text-[var(--color-text-tertiary)]">
-            <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)] rounded-full" />
-            <span>
-              client-side only · no accounts · no telemetry · production keys
-              live in IndexedDB behind a passkey
-            </span>
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  const stepCountRef = useRef(steps.length);
-  stepCountRef.current = steps.length;
 
   useEffect(() => {
     try {
@@ -173,7 +161,7 @@ export function OnboardingProvider() {
   }
   function next() {
     setIdx((i) => {
-      if (i < stepCountRef.current - 1) return i + 1;
+      if (i < STEPS.length - 1) return i + 1;
       dismiss();
       return i;
     });
@@ -203,51 +191,66 @@ export function OnboardingProvider() {
 
   if (!open) return null;
 
-  const step = steps[idx]!;
-  const isLast = idx === steps.length - 1;
+  const step = STEPS[idx]!;
+  const isLast = idx === STEPS.length - 1;
 
   return (
     <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/85 backdrop-blur-sm"
       onClick={dismiss}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-[620px] h-[600px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
+        className="relative w-[640px] max-w-[94vw] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.85)] flex flex-col"
       >
-        {/* Top bar */}
-        <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            {steps.map((_, i) => (
+        {/* Close — floating */}
+        <button
+          onClick={dismiss}
+          aria-label="close"
+          className="absolute top-3 right-3 z-10 w-7 h-7 grid place-items-center font-mono text-[12px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-input)] transition"
+        >
+          ✕
+        </button>
+
+        {/* Step pills with labels */}
+        <div className="px-8 pt-7 pb-5 flex items-end gap-3 shrink-0">
+          {STEPS.map((s, i) => {
+            const isCurrent = i === idx;
+            const isPast = i < idx;
+            return (
               <button
-                key={i}
+                key={s.slug}
                 onClick={() => setIdx(i)}
-                aria-label={`step ${i + 1}`}
-                className={`h-1 w-7 transition ${
-                  i === idx
-                    ? "bg-[var(--color-accent)]"
-                    : i < idx
-                    ? "bg-[var(--color-accent-dim)]"
-                    : "bg-[var(--color-border)] hover:bg-[var(--color-border-strong)]"
-                }`}
-              />
-            ))}
-            <span className="font-mono text-[10px] text-[var(--color-text-tertiary)] ml-2">
-              {step.num}
-            </span>
-          </div>
-          <button
-            onClick={dismiss}
-            className="font-mono text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition"
-          >
-            skip
-          </button>
+                aria-label={s.slug}
+                className="group flex flex-col items-start gap-2 flex-1 text-left"
+              >
+                <div
+                  className={`h-[2px] w-full transition ${
+                    isCurrent
+                      ? "bg-[var(--color-accent)] shadow-[0_0_6px_rgba(79,189,255,0.55)]"
+                      : isPast
+                      ? "bg-[var(--color-accent-dim)]"
+                      : "bg-[var(--color-border)] group-hover:bg-[var(--color-border-strong)]"
+                  }`}
+                />
+                <span
+                  className={`font-mono text-[9.5px] tracking-[0.2em] uppercase ${
+                    isCurrent
+                      ? "text-[var(--color-text-primary)]"
+                      : "text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]"
+                  }`}
+                >
+                  {s.slug}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Banner */}
-        <div className="px-6 pb-3 shrink-0">
+        <div className="px-8 pb-5 shrink-0">
           <div
-            className="relative w-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-base)]"
+            className="relative w-full overflow-hidden border border-[var(--color-border-strong)] bg-[var(--color-base)]"
             style={{ aspectRatio: "4 / 1" }}
           >
             {step.image && (
@@ -264,16 +267,20 @@ export function OnboardingProvider() {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="px-7 pt-1 pb-4 flex-1 overflow-y-auto thin-scroll min-h-0">
-          <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.22em] mb-1.5">
+        {/* Body — no scroll, sized to fit longest step */}
+        <div className="px-8 pb-5 shrink-0">
+          <div className="font-mono text-[10px] text-[var(--color-accent)] tracking-[0.28em] mb-2">
             {step.eyebrow}
           </div>
-          <h2 className="font-mono text-[18px] font-medium text-[var(--color-text-primary)] mb-2 leading-snug">
-            {step.title}
+          <h2 className="font-[var(--font-display)] text-[32px] leading-[1.05] text-[var(--color-text-primary)] tracking-[0.01em] flex items-end gap-1.5">
+            <span>{step.title}</span>
+            <span
+              aria-hidden
+              className="caret inline-block w-[10px] h-[22px] bg-[var(--color-accent)] mb-[3px]"
+            />
           </h2>
           {step.subtitle && (
-            <p className="font-mono text-[12px] leading-[1.55] text-[var(--color-text-secondary)] mb-1">
+            <p className="font-mono text-[12px] leading-[1.55] text-[var(--color-text-secondary)] mt-2.5 max-w-[60ch]">
               {step.subtitle}
             </p>
           )}
@@ -281,22 +288,25 @@ export function OnboardingProvider() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-[var(--color-border)] flex items-center justify-between gap-3 shrink-0">
+        <div className="px-7 py-3.5 border-t border-[var(--color-border)] flex items-center justify-between gap-3 shrink-0">
           <button
             onClick={back}
             disabled={idx === 0}
-            className="font-mono text-[11px] px-2 py-1 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:text-[var(--color-text-faint)] disabled:cursor-not-allowed transition"
+            className="font-mono text-[11px] px-2 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:text-[var(--color-text-faint)] disabled:cursor-not-allowed transition"
           >
             ← back
           </button>
-          <div className="font-mono text-[10px] text-[var(--color-text-tertiary)] flex-1 text-center">
-            ← → step · ⏎ next · esc skip
+          <div className="font-mono text-[10px] text-[var(--color-text-tertiary)]">
+            {idx + 1} of {STEPS.length}
           </div>
           <button
             onClick={next}
-            className="font-mono text-[11px] uppercase tracking-[0.16em] px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-bright)] text-[var(--color-base)] font-medium transition"
+            className="group flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-bright)] text-[var(--color-base)] font-medium transition"
           >
-            {isLast ? "enter →" : "continue →"}
+            <span>{isLast ? "enter blindchat" : "continue"}</span>
+            <span className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </button>
         </div>
       </div>
@@ -317,28 +327,24 @@ function Row({
   detail: string;
   variant?: "default" | "warn";
 }) {
-  const accent =
-    variant === "warn"
-      ? "text-[var(--color-warn)]"
-      : "text-[var(--color-accent)]";
-  const border =
-    variant === "warn"
-      ? "border-[var(--color-warn)]/30"
-      : "border-[var(--color-accent-dim)]";
+  const isWarn = variant === "warn";
+  const accent = isWarn ? "text-[var(--color-warn)]" : "text-[var(--color-accent)]";
+  const stripe = isWarn ? "bg-[var(--color-warn)]" : "bg-[var(--color-accent)]";
   return (
-    <div
-      className={`flex items-start gap-3 border-l-2 ${border} pl-3 py-1`}
-    >
+    <div className="relative flex items-start gap-3 pl-4 pr-2 py-2">
+      <span
+        className={`absolute left-0 top-2 bottom-2 w-[2px] ${stripe} opacity-70`}
+      />
       {num && (
         <div
-          className={`shrink-0 w-4 font-mono text-[11px] ${accent} mt-px text-center`}
+          className={`shrink-0 w-5 font-mono text-[11px] ${accent} mt-px text-center`}
         >
           {num}
         </div>
       )}
-      <div className="shrink-0 w-[112px]">
+      <div className="shrink-0 w-[108px]">
         <div
-          className={`font-mono text-[10px] uppercase tracking-[0.14em] ${accent}`}
+          className={`font-mono text-[10px] uppercase tracking-[0.16em] ${accent}`}
         >
           {tag}
         </div>
