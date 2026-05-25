@@ -34,6 +34,12 @@ export type StreamOptions = {
   messages: VeniceMessage[];
   tools?: ToolDef[];
   signal?: AbortSignal;
+  /** Hard stop sequences — generation terminates as soon as any match. */
+  stop?: string[];
+  /** Reasoning effort for models that support it. "none" disables thinking. */
+  reasoning_effort?: "none" | "low" | "medium" | "high";
+  /** Max tokens to generate. Important for reasoning models. */
+  max_tokens?: number;
 };
 
 export type TurnEvent =
@@ -51,12 +57,18 @@ export async function* streamVeniceTurn({
   messages,
   tools,
   signal,
+  stop,
+  reasoning_effort,
+  max_tokens,
 }: StreamOptions): AsyncGenerator<TurnEvent, void, unknown> {
   const body: Record<string, unknown> = { model, messages, stream: true };
   if (tools && tools.length > 0) {
     body.tools = tools;
     body.tool_choice = "auto";
   }
+  if (stop && stop.length > 0) body.stop = stop;
+  if (reasoning_effort) body.reasoning_effort = reasoning_effort;
+  if (typeof max_tokens === "number") body.max_tokens = max_tokens;
 
   const res = await fetch(`${VENICE_BASE}/chat/completions`, {
     method: "POST",

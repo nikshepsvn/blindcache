@@ -6,10 +6,10 @@ import { Dropdown } from "@/components/Dropdown";
 import { ModelPicker } from "@/components/ModelPicker";
 
 function MemoryStatus({
-  toolsAvailable,
+  memoryMode,
   vaultPhase,
 }: {
-  toolsAvailable: boolean;
+  memoryMode: "native" | "compat" | "off";
   vaultPhase: "loading" | "ready" | "error";
 }) {
   let label: string;
@@ -23,14 +23,18 @@ function MemoryStatus({
     label = "memory: error";
     color = "text-[var(--color-warn)]";
     title = "vault failed to open";
-  } else if (!toolsAvailable) {
-    label = "memory: read-only";
-    color = "text-[var(--color-warn)]";
-    title = "this model can't call tools — switch to a Qwen3 model to enable save/search";
-  } else {
-    label = "memory: tools on";
+  } else if (memoryMode === "native") {
+    label = "memory: native";
     color = "text-[var(--color-success)]";
-    title = "save/search/list/delete memory tools available";
+    title = "native function calling — save/search/list/delete available";
+  } else if (memoryMode === "compat") {
+    label = "memory: compat";
+    color = "text-[var(--color-accent)]";
+    title = "marker protocol — save/search/list/delete via embedded JSON blocks (model doesn't natively support tools)";
+  } else {
+    label = "memory: off";
+    color = "text-[var(--color-text-tertiary)]";
+    title = "vault not available";
   }
   return (
     <span
@@ -49,7 +53,7 @@ export function MessageInput({
   onSend,
   onStop,
   isStreaming,
-  toolsAvailable,
+  memoryMode,
   vaultPhase,
 }: {
   model: string;
@@ -57,7 +61,7 @@ export function MessageInput({
   onSend: (text: string) => void;
   onStop: () => void;
   isStreaming: boolean;
-  toolsAvailable: boolean;
+  memoryMode: "native" | "compat" | "off";
   vaultPhase: "loading" | "ready" | "error";
 }) {
   const [value, setValue] = useState("");
@@ -124,7 +128,7 @@ export function MessageInput({
               options={mockScopes.map((s) => ({ value: s, label: s }))}
             />
             <MemoryStatus
-              toolsAvailable={toolsAvailable}
+              memoryMode={memoryMode}
               vaultPhase={vaultPhase}
             />
           </div>
