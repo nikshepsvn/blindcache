@@ -91,32 +91,186 @@ export function getVeniceModel(): string {
 
 /**
  * Curated TEE + E2EE-capable Venice models.
- * Source: GET https://api.venice.ai/api/v1/models where capabilities
- * supportsTeeAttestation && supportsE2EE are both true.
- * Updated 2026-05-25; refresh as Venice ships new models.
+ * Source: GET https://api.venice.ai/api/v1/models where
+ * supportsTeeAttestation && supportsE2EE.
+ * Fields populated from Venice's own metadata (ctx, pricing, capabilities,
+ * descriptions). Ordered by output price descending — a rough proxy for
+ * model capability tier. Refresh from the live endpoint as Venice ships.
+ * Last sync: 2026-05-25.
  */
+export type VeniceTag =
+  | "flagship"
+  | "reasoning"
+  | "code"
+  | "vision"
+  | "tools"
+  | "long-ctx"
+  | "uncensored"
+  | "fast";
+
 export type VeniceModel = {
   id: string;
   label: string;
+  family: string;          // GLM / Qwen / GPT-OSS / Gemma / Venice
   contextK: number;
-  privacy: "tee+e2ee";
-  note?: string;
+  /** USD per million output tokens — the headline price */
+  outPerMtok: number;
+  /** USD per million input tokens */
+  inPerMtok: number;
+  description: string;     // unique part, TEE boilerplate stripped
+  tags: VeniceTag[];
 };
 
+// Sorted by output price descending (capability proxy).
 export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
-  { id: "e2ee-qwen3-30b-a3b-p",              label: "qwen3 30b",          contextK: 256, privacy: "tee+e2ee", note: "long context · default" },
-  { id: "e2ee-glm-5-1",                      label: "glm 5.1",            contextK: 200, privacy: "tee+e2ee" },
-  { id: "e2ee-glm-4-7-flash-p",              label: "glm 4.7 flash",      contextK: 198, privacy: "tee+e2ee", note: "fast" },
-  { id: "e2ee-gpt-oss-120b-p",               label: "gpt-oss 120b",       contextK: 128, privacy: "tee+e2ee", note: "biggest" },
-  { id: "e2ee-gpt-oss-20b-p",                label: "gpt-oss 20b",        contextK: 128, privacy: "tee+e2ee" },
-  { id: "e2ee-qwen3-5-122b-a10b",            label: "qwen3.5 122b",       contextK: 128, privacy: "tee+e2ee" },
-  { id: "e2ee-qwen3-6-35b-a3b-uncensored-p", label: "qwen3.6 35b unc.",   contextK: 128, privacy: "tee+e2ee", note: "uncensored" },
-  { id: "e2ee-qwen3-vl-30b-a3b-p",           label: "qwen3 vl 30b",       contextK: 128, privacy: "tee+e2ee", note: "vision" },
-  { id: "e2ee-glm-4-7-p",                    label: "glm 4.7",            contextK: 128, privacy: "tee+e2ee" },
-  { id: "e2ee-gemma-4-26b-a4b-uncensored-p", label: "gemma 4 26b unc.",   contextK: 64,  privacy: "tee+e2ee" },
-  { id: "e2ee-gemma-3-27b-p",                label: "gemma 3 27b",        contextK: 40,  privacy: "tee+e2ee" },
-  { id: "e2ee-venice-uncensored-24b-p",      label: "venice unc. 24b",    contextK: 32,  privacy: "tee+e2ee", note: "uncensored" },
-  { id: "e2ee-qwen3-6-35b-a3b",              label: "qwen3.6 35b",        contextK: 32,  privacy: "tee+e2ee" },
-  { id: "e2ee-qwen-2-5-7b-p",                label: "qwen 2.5 7b",        contextK: 32,  privacy: "tee+e2ee", note: "small/fast" },
-  { id: "e2ee-gemma-4-31b",                  label: "gemma 4 31b",        contextK: 32,  privacy: "tee+e2ee" },
+  {
+    id: "e2ee-glm-4-7-p",
+    label: "GLM 4.7",
+    family: "GLM",
+    contextK: 128,
+    outPerMtok: 4.15,
+    inPerMtok: 1.1,
+    description: "Z.AI flagship — enhanced programming, stable multi-step reasoning.",
+    tags: ["flagship", "reasoning", "code"],
+  },
+  {
+    id: "e2ee-glm-5-1",
+    label: "GLM 5.1",
+    family: "GLM",
+    contextK: 200,
+    outPerMtok: 4.15,
+    inPerMtok: 1.1,
+    description: "Next-gen GLM with extended reasoning and longer context.",
+    tags: ["flagship", "reasoning", "long-ctx"],
+  },
+  {
+    id: "e2ee-qwen3-5-122b-a10b",
+    label: "Qwen3.5 122B A10B",
+    family: "Qwen",
+    contextK: 128,
+    outPerMtok: 4.0,
+    inPerMtok: 0.5,
+    description: "Largest open MoE on offer — reasoning, multimodal, tools.",
+    tags: ["flagship", "reasoning", "vision", "tools"],
+  },
+  {
+    id: "e2ee-qwen3-6-35b-a3b-uncensored-p",
+    label: "Qwen3.6 35B Uncensored",
+    family: "Qwen",
+    contextK: 128,
+    outPerMtok: 1.88,
+    inPerMtok: 0.38,
+    description: "Alibaba's MoE with 35B total / 3B active — uncensored variant.",
+    tags: ["uncensored"],
+  },
+  {
+    id: "e2ee-qwen3-6-35b-a3b",
+    label: "Qwen3.6 35B FP8",
+    family: "Qwen",
+    contextK: 32,
+    outPerMtok: 1.18,
+    inPerMtok: 0.182,
+    description: "Fast MoE — 3B active per token, reasoning + tools.",
+    tags: ["reasoning", "code", "tools", "fast"],
+  },
+  {
+    id: "e2ee-venice-uncensored-24b-p",
+    label: "Venice Uncensored 1.1",
+    family: "Venice",
+    contextK: 32,
+    outPerMtok: 1.15,
+    inPerMtok: 0.25,
+    description: "Venice's own uncensored 24B — strong general assistant.",
+    tags: ["uncensored"],
+  },
+  {
+    id: "e2ee-qwen3-vl-30b-a3b-p",
+    label: "Qwen3 VL 30B",
+    family: "Qwen",
+    contextK: 128,
+    outPerMtok: 0.9,
+    inPerMtok: 0.25,
+    description: "Multimodal — unifies text with image + video understanding.",
+    tags: ["vision", "tools"],
+  },
+  {
+    id: "e2ee-gemma-4-26b-a4b-uncensored-p",
+    label: "Gemma 4 26B Uncensored",
+    family: "Gemma",
+    contextK: 64,
+    outPerMtok: 0.88,
+    inPerMtok: 0.19,
+    description: "Google's Gemma 4 MoE — 25B total / 4B active, multimodal.",
+    tags: ["uncensored"],
+  },
+  {
+    id: "e2ee-qwen3-30b-a3b-p",
+    label: "Qwen3 30B A3B",
+    family: "Qwen",
+    contextK: 256,
+    outPerMtok: 0.69,
+    inPerMtok: 0.19,
+    description: "MoE with 30B total / 3B active, ultra-long 256k context.",
+    tags: ["long-ctx", "tools"],
+  },
+  {
+    id: "e2ee-gpt-oss-120b-p",
+    label: "GPT OSS 120B",
+    family: "GPT-OSS",
+    contextK: 128,
+    outPerMtok: 0.65,
+    inPerMtok: 0.13,
+    description: "OpenAI's open-weight 117B MoE — configurable reasoning depth.",
+    tags: ["reasoning"],
+  },
+  {
+    id: "e2ee-glm-4-7-flash-p",
+    label: "GLM 4.7 Flash",
+    family: "GLM",
+    contextK: 198,
+    outPerMtok: 0.55,
+    inPerMtok: 0.13,
+    description: "30B-class — agentic coding, long-horizon planning.",
+    tags: ["reasoning", "code", "long-ctx", "fast"],
+  },
+  {
+    id: "e2ee-gemma-3-27b-p",
+    label: "Gemma 3 27B",
+    family: "Gemma",
+    contextK: 40,
+    outPerMtok: 0.5,
+    inPerMtok: 0.14,
+    description: "Google's multimodal 27B — 140+ language understanding.",
+    tags: ["vision"],
+  },
+  {
+    id: "e2ee-gemma-4-31b",
+    label: "Gemma 4 31B Instruct",
+    family: "Gemma",
+    contextK: 32,
+    outPerMtok: 0.43,
+    inPerMtok: 0.139,
+    description: "Gemma 4 instruction-tuned dense model with reasoning.",
+    tags: ["reasoning"],
+  },
+  {
+    id: "e2ee-gpt-oss-20b-p",
+    label: "GPT OSS 20B",
+    family: "GPT-OSS",
+    contextK: 128,
+    outPerMtok: 0.19,
+    inPerMtok: 0.05,
+    description: "OpenAI's compact 21B MoE — 3.6B active, low-latency.",
+    tags: ["reasoning", "fast"],
+  },
+  {
+    id: "e2ee-qwen-2-5-7b-p",
+    label: "Qwen 2.5 7B",
+    family: "Qwen",
+    contextK: 32,
+    outPerMtok: 0.13,
+    inPerMtok: 0.05,
+    description: "Compact 7B — coding, math, 29+ languages. Quickest option.",
+    tags: ["code", "fast"],
+  },
 ];

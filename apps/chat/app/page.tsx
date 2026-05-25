@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ChatThread } from "@/components/ChatThread";
 import { MemoryPanel } from "@/components/MemoryPanel";
 import { MessageInput } from "@/components/MessageInput";
+import { OnboardingProvider } from "@/components/Onboarding";
 import { seedMessages, type Message } from "@/lib/mockData";
 import { streamVeniceChat, getVeniceKey, getVeniceModel } from "@/lib/venice";
 
@@ -106,6 +107,7 @@ export default function ChatPage() {
 
   return (
     <main className="h-screen w-screen flex bg-[var(--color-base)] overflow-hidden">
+      <OnboardingProvider />
       <Sidebar />
 
       <section className="flex-1 flex flex-col min-w-0">
