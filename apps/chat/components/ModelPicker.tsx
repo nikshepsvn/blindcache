@@ -168,7 +168,7 @@ function ModelPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-start justify-center pt-[10vh] bg-black/75 backdrop-blur-sm"
+      className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

@@ -1,6 +1,7 @@
 "use client";
 
 import { mockThreads } from "@/lib/mockData";
+import { OPEN_ONBOARDING_EVENT } from "@/components/Onboarding";
 
 export function Sidebar() {
   return (
@@ -57,9 +58,20 @@ export function Sidebar() {
           <span className="h-1.5 w-1.5 bg-[var(--color-success)] rounded-full" />
           <span>vault online</span>
         </div>
-        <button className="hover:text-[var(--color-accent)] transition">
-          settings
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent(OPEN_ONBOARDING_EVENT))
+            }
+            className="hover:text-[var(--color-accent)] transition"
+            title="re-open the welcome tour"
+          >
+            intro
+          </button>
+          <button className="hover:text-[var(--color-accent)] transition">
+            settings
+          </button>
+        </div>
       </div>
     </aside>
   );
