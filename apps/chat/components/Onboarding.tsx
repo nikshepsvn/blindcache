@@ -190,7 +190,7 @@ export function OnboardingProvider() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-[600px] h-[640px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
+        className="w-[600px] h-[560px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
       >
         {/* Top bar: progress + skip */}
         <div className="px-6 pt-5 pb-4 flex items-center justify-between shrink-0">
@@ -283,16 +283,16 @@ function Layer({
   detail: string;
 }) {
   return (
-    <div className="flex items-start gap-3 border-l-2 border-[var(--color-accent-dim)] pl-4 py-1.5">
-      <div className="shrink-0 w-[110px]">
+    <div className="flex items-start gap-3 border-l-2 border-[var(--color-accent-dim)] pl-3 py-1">
+      <div className="shrink-0 w-[105px]">
         <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.14em]">
           {tag}
         </div>
-        <div className="font-mono text-[10px] text-[var(--color-text-tertiary)] mt-0.5">
+        <div className="font-mono text-[9.5px] text-[var(--color-text-tertiary)] mt-0.5">
           {where}
         </div>
       </div>
-      <div className="font-mono text-[12px] text-[var(--color-text-secondary)] leading-[1.6] flex-1">
+      <div className="font-mono text-[11.5px] text-[var(--color-text-secondary)] leading-[1.55] flex-1">
         {detail}
       </div>
     </div>
