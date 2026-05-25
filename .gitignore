@@ -6,3 +6,9 @@ dist
 .DS_Store
 .blindcache-collection-id
 .hearth-collection-id
+
+# Next.js
+.next/
+out/
+.vercel/
+next-env.d.ts
