@@ -272,12 +272,8 @@ export function OnboardingProvider() {
           <div className="font-mono text-[10px] text-[var(--color-accent)] tracking-[0.28em] mb-2">
             {step.eyebrow}
           </div>
-          <h2 className="font-[var(--font-display)] text-[32px] leading-[1.05] text-[var(--color-text-primary)] tracking-[0.01em] flex items-end gap-1.5">
-            <span>{step.title}</span>
-            <span
-              aria-hidden
-              className="caret inline-block w-[10px] h-[22px] bg-[var(--color-accent)] mb-[3px]"
-            />
+          <h2 className="font-[var(--font-display)] text-[32px] leading-[1.05] text-[var(--color-text-primary)] tracking-[0.01em]">
+            {step.title}
           </h2>
           {step.subtitle && (
             <p className="font-mono text-[12px] leading-[1.55] text-[var(--color-text-secondary)] mt-2.5 max-w-[60ch]">
