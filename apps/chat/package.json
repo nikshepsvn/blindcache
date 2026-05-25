@@ -10,9 +10,24 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@nillion/nuc": "^2.0.1",
+    "@nillion/secretvaults": "^3.0.0",
+    "blindcache-core": "workspace:*",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "events": "^3.3.0",
+    "https-browserify": "^1.0.0",
     "next": "^15.1.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "url": "^0.11.4",
+    "util": "^0.12.5",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

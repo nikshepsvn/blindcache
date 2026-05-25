@@ -74,12 +74,37 @@ export function ChatThread({
                     className="hover:text-[var(--color-accent)] transition"
                   >
                     {msg.injectedMemoryIds.length === 1
-                      ? "1 memory pulled"
-                      : `${msg.injectedMemoryIds.length} memories pulled`}
+                      ? "1 memory touched"
+                      : `${msg.injectedMemoryIds.length} memories touched`}
                   </button>
                 )}
                 <span className="ml-auto">{msg.timestamp}</span>
               </div>
+
+              {msg.toolEvents && msg.toolEvents.length > 0 && (
+                <div className="space-y-1 mb-1">
+                  {msg.toolEvents.map((ev, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 font-mono text-[10.5px] text-[var(--color-text-tertiary)]"
+                    >
+                      <span
+                        className={
+                          ev.ok
+                            ? "text-[var(--color-accent)]"
+                            : "text-[var(--color-warn)]"
+                        }
+                      >
+                        ▸
+                      </span>
+                      <span className="text-[var(--color-text-secondary)]">
+                        {ev.name}
+                      </span>
+                      <span className="opacity-60">{ev.summary}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="text-[14.5px] leading-[1.75] whitespace-pre-wrap font-mono text-[var(--color-text-primary)]">
                 {msg.content ? (

@@ -4,46 +4,85 @@
 
 const VENICE_BASE = "https://api.venice.ai/api/v1";
 
-export type VeniceMessage = {
-  role: "system" | "user" | "assistant";
-  content: string;
+export type ToolCall = {
+  id: string;
+  name: string;
+  arguments: string; // serialized JSON
+};
+
+export type VeniceMessage =
+  | { role: "system" | "user"; content: string }
+  | {
+      role: "assistant";
+      content: string | null;
+      tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[];
+    }
+  | { role: "tool"; tool_call_id: string; content: string };
+
+export type ToolDef = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
 };
 
 export type StreamOptions = {
   apiKey: string;
   model: string;
   messages: VeniceMessage[];
+  tools?: ToolDef[];
   signal?: AbortSignal;
 };
 
-export async function* streamVeniceChat({
+export type TurnEvent =
+  | { kind: "content"; delta: string }
+  | { kind: "done"; content: string; toolCalls: ToolCall[]; finishReason: string };
+
+/**
+ * Run one turn of conversation. Yields content deltas as they stream, then a
+ * final "done" event with any tool calls and the full content. The caller is
+ * responsible for orchestrating the tool execution loop.
+ */
+export async function* streamVeniceTurn({
   apiKey,
   model,
   messages,
+  tools,
   signal,
-}: StreamOptions): AsyncGenerator<string, void, unknown> {
+}: StreamOptions): AsyncGenerator<TurnEvent, void, unknown> {
+  const body: Record<string, unknown> = { model, messages, stream: true };
+  if (tools && tools.length > 0) {
+    body.tools = tools;
+    body.tool_choice = "auto";
+  }
+
   const res = await fetch(`${VENICE_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, messages, stream: true }),
+    body: JSON.stringify(body),
     signal,
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Venice API ${res.status}: ${body.slice(0, 200)}`);
+    const txt = await res.text();
+    throw new Error(`Venice API ${res.status}: ${txt.slice(0, 200)}`);
   }
   if (!res.body) throw new Error("Venice returned empty body");
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  // Many LLM tokenizers prefix the first content token with whitespace —
-  // strip leading whitespace until we've emitted real text.
   let started = false;
+  let content = "";
+  let finishReason = "stop";
+
+  // Tool calls arrive in fragments — accumulate by index.
+  const partials = new Map<number, { id?: string; name?: string; args: string }>();
 
   while (true) {
     const { done, value } = await reader.read();
@@ -57,22 +96,53 @@ export async function* streamVeniceChat({
       const trimmed = line.trim();
       if (!trimmed.startsWith("data:")) continue;
       const payload = trimmed.slice(5).trim();
-      if (payload === "[DONE]") return;
+      if (payload === "[DONE]") break;
       try {
         const json = JSON.parse(payload);
-        let delta: string | undefined = json?.choices?.[0]?.delta?.content;
-        if (!delta) continue;
-        if (!started) {
-          delta = delta.replace(/^\s+/, "");
-          if (!delta) continue;
-          started = true;
+        const choice = json?.choices?.[0];
+        if (!choice) continue;
+
+        if (typeof choice.finish_reason === "string" && choice.finish_reason) {
+          finishReason = choice.finish_reason;
         }
-        yield delta;
+
+        const delta = choice.delta ?? {};
+        if (typeof delta.content === "string" && delta.content) {
+          let text = delta.content;
+          if (!started) {
+            text = text.replace(/^\s+/, "");
+            if (!text) continue;
+            started = true;
+          }
+          content += text;
+          yield { kind: "content", delta: text };
+        }
+
+        if (Array.isArray(delta.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const idx = typeof tc.index === "number" ? tc.index : 0;
+            const slot = partials.get(idx) ?? { args: "" };
+            if (tc.id) slot.id = tc.id;
+            const fn = tc.function ?? {};
+            if (fn.name) slot.name = fn.name;
+            if (typeof fn.arguments === "string") slot.args += fn.arguments;
+            partials.set(idx, slot);
+          }
+        }
       } catch {
-        // Skip malformed lines silently — common in SSE streams.
+        // skip malformed
       }
     }
   }
+
+  const toolCalls: ToolCall[] = [];
+  for (const [idx, slot] of [...partials.entries()].sort((a, b) => a[0] - b[0])) {
+    if (!slot.id || !slot.name) continue;
+    toolCalls.push({ id: slot.id, name: slot.name, arguments: slot.args });
+    void idx;
+  }
+
+  yield { kind: "done", content, toolCalls, finishReason };
 }
 
 export function getVeniceKey(): string {
@@ -93,9 +163,6 @@ export function getVeniceModel(): string {
  * Curated TEE + E2EE-capable Venice models.
  * Source: GET https://api.venice.ai/api/v1/models where
  * supportsTeeAttestation && supportsE2EE.
- * Fields populated from Venice's own metadata (ctx, pricing, capabilities,
- * descriptions). Ordered by output price descending — a rough proxy for
- * model capability tier. Refresh from the live endpoint as Venice ships.
  * Last sync: 2026-05-25.
  */
 export type VeniceTag =
@@ -111,17 +178,16 @@ export type VeniceTag =
 export type VeniceModel = {
   id: string;
   label: string;
-  family: string;          // GLM / Qwen / GPT-OSS / Gemma / Venice
+  family: string;
   contextK: number;
-  /** USD per million output tokens — the headline price */
   outPerMtok: number;
-  /** USD per million input tokens */
   inPerMtok: number;
-  description: string;     // unique part, TEE boilerplate stripped
+  description: string;
   tags: VeniceTag[];
+  /** Truth from Venice's `model_spec.capabilities.supportsFunctionCalling`. */
+  supportsTools: boolean;
 };
 
-// Sorted by output price descending (capability proxy).
 export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
   {
     id: "e2ee-glm-4-7-p",
@@ -132,6 +198,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 1.1,
     description: "Z.AI flagship — enhanced programming, stable multi-step reasoning.",
     tags: ["flagship", "reasoning", "code"],
+    supportsTools: false,
   },
   {
     id: "e2ee-glm-5-1",
@@ -142,6 +209,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 1.1,
     description: "Next-gen GLM with extended reasoning and longer context.",
     tags: ["flagship", "reasoning", "long-ctx"],
+    supportsTools: false,
   },
   {
     id: "e2ee-qwen3-5-122b-a10b",
@@ -152,6 +220,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.5,
     description: "Largest open MoE on offer — reasoning, multimodal, tools.",
     tags: ["flagship", "reasoning", "vision", "tools"],
+    supportsTools: true,
   },
   {
     id: "e2ee-qwen3-6-35b-a3b-uncensored-p",
@@ -162,6 +231,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.38,
     description: "Alibaba's MoE with 35B total / 3B active — uncensored variant.",
     tags: ["uncensored"],
+    supportsTools: false,
   },
   {
     id: "e2ee-qwen3-6-35b-a3b",
@@ -172,6 +242,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.182,
     description: "Fast MoE — 3B active per token, reasoning + tools.",
     tags: ["reasoning", "code", "tools", "fast"],
+    supportsTools: true,
   },
   {
     id: "e2ee-venice-uncensored-24b-p",
@@ -182,6 +253,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.25,
     description: "Venice's own uncensored 24B — strong general assistant.",
     tags: ["uncensored"],
+    supportsTools: false,
   },
   {
     id: "e2ee-qwen3-vl-30b-a3b-p",
@@ -192,6 +264,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.25,
     description: "Multimodal — unifies text with image + video understanding.",
     tags: ["vision", "tools"],
+    supportsTools: true,
   },
   {
     id: "e2ee-gemma-4-26b-a4b-uncensored-p",
@@ -202,6 +275,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.19,
     description: "Google's Gemma 4 MoE — 25B total / 4B active, multimodal.",
     tags: ["uncensored"],
+    supportsTools: false,
   },
   {
     id: "e2ee-qwen3-30b-a3b-p",
@@ -212,6 +286,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.19,
     description: "MoE with 30B total / 3B active, ultra-long 256k context.",
     tags: ["long-ctx", "tools"],
+    supportsTools: true,
   },
   {
     id: "e2ee-gpt-oss-120b-p",
@@ -222,6 +297,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.13,
     description: "OpenAI's open-weight 117B MoE — configurable reasoning depth.",
     tags: ["reasoning"],
+    supportsTools: false,
   },
   {
     id: "e2ee-glm-4-7-flash-p",
@@ -232,6 +308,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.13,
     description: "30B-class — agentic coding, long-horizon planning.",
     tags: ["reasoning", "code", "long-ctx", "fast"],
+    supportsTools: false,
   },
   {
     id: "e2ee-gemma-3-27b-p",
@@ -242,6 +319,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.14,
     description: "Google's multimodal 27B — 140+ language understanding.",
     tags: ["vision"],
+    supportsTools: false,
   },
   {
     id: "e2ee-gemma-4-31b",
@@ -252,6 +330,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.139,
     description: "Gemma 4 instruction-tuned dense model with reasoning.",
     tags: ["reasoning"],
+    supportsTools: false,
   },
   {
     id: "e2ee-gpt-oss-20b-p",
@@ -262,6 +341,7 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.05,
     description: "OpenAI's compact 21B MoE — 3.6B active, low-latency.",
     tags: ["reasoning", "fast"],
+    supportsTools: false,
   },
   {
     id: "e2ee-qwen-2-5-7b-p",
@@ -272,5 +352,10 @@ export const VENICE_PRIVATE_MODELS: VeniceModel[] = [
     inPerMtok: 0.05,
     description: "Compact 7B — coding, math, 29+ languages. Quickest option.",
     tags: ["code", "fast"],
+    supportsTools: false,
   },
 ];
+
+export function findModel(id: string): VeniceModel | undefined {
+  return VENICE_PRIVATE_MODELS.find((m) => m.id === id);
+}

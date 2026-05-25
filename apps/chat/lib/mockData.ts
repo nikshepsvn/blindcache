@@ -5,6 +5,12 @@ export type Message = {
   timestamp: string;
   injectedMemoryIds?: string[];
   streaming?: boolean;
+  /** Tool calls the assistant made during this turn (memory ops). */
+  toolEvents?: {
+    name: string;
+    summary: string; // human-readable: "saved memory", "searched 'X' → 3 hits"
+    ok: boolean;
+  }[];
 };
 
 export type Memory = {
@@ -25,26 +31,7 @@ export type ChatThread = {
   updatedAt: string;
 };
 
-export const mockThreads: ChatThread[] = [
-  {
-    id: "t1",
-    title: "new chat",
-    preview: "venice + blindcache, wired up",
-    updatedAt: "just now",
-  },
-  {
-    id: "t2",
-    title: "stripe webhook retries",
-    preview: "exponential backoff capped at 6 attempts",
-    updatedAt: "2h ago",
-  },
-  {
-    id: "t3",
-    title: "espresso machine descaling",
-    preview: "every 60 cups apparently",
-    updatedAt: "yesterday",
-  },
-];
+export const mockThreads: ChatThread[] = [];
 
 // Used by the MemoryPanel mock for now. v0.3 wires these to real BlindCache.
 export const mockMemories: Memory[] = [
