@@ -29,15 +29,15 @@ export function OnboardingProvider() {
       title: "blindchat",
       image: "/onboarding/01-welcome.jpg",
       body: (
-        <div className="space-y-4">
-          <p className="font-mono text-[14px] leading-[1.7] text-[var(--color-text-primary)]">
+        <div className="space-y-3">
+          <p className="font-mono text-[13.5px] leading-[1.65] text-[var(--color-text-primary)]">
             private chat with portable memory.
           </p>
-          <p className="font-mono text-[13px] leading-[1.7] text-[var(--color-text-secondary)]">
-            three privacy layers stitched together: an LLM that runs in a
-            hardware enclave, encrypted memory sharded across an independent
-            network, and embeddings computed locally in your browser. no backend
-            on our side. your browser is the whole app.
+          <p className="font-mono text-[12.5px] leading-[1.65] text-[var(--color-text-secondary)]">
+            three layers stitched together: an LLM running in a hardware
+            enclave, encrypted memory sharded across an independent network,
+            and embeddings computed in your browser. no backend on our side —
+            your browser is the whole app.
           </p>
         </div>
       ),
@@ -73,33 +73,26 @@ export function OnboardingProvider() {
       title: "what's not perfectly private",
       image: "/onboarding/03-honest.jpg",
       body: (
-        <div className="space-y-3">
-          <p className="font-mono text-[13px] leading-[1.7] text-[var(--color-text-secondary)]">
-            no privacy claim is unconditional. here&apos;s what we don&apos;t
-            defend against:
-          </p>
-          <ul className="font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)] space-y-2 pl-1">
-            <li>
-              <span className="text-[var(--color-warn)]">·</span>{" "}
-              <b className="text-[var(--color-text-primary)]">metadata</b> —
-              tags, scope, timestamps live as plaintext on nilDB nodes for
-              queryability. a node operator scraping all shares could see
-              semantic clusters.
-            </li>
-            <li>
-              <span className="text-[var(--color-warn)]">·</span>{" "}
-              <b className="text-[var(--color-text-primary)]">browser memory</b>{" "}
-              — anything you type lives in your tab&apos;s RAM until you close
-              it.
-            </li>
-            <li>
-              <span className="text-[var(--color-warn)]">·</span>{" "}
-              <b className="text-[var(--color-text-primary)]">the page itself</b>{" "}
-              is the attack surface. a compromised browser, malicious extension,
-              or hijacked domain could read everything.
-            </li>
-          </ul>
-        </div>
+        <ul className="font-mono text-[12px] leading-[1.65] text-[var(--color-text-secondary)] space-y-2.5">
+          <li>
+            <span className="text-[var(--color-warn)]">·</span>{" "}
+            <b className="text-[var(--color-text-primary)]">metadata is plaintext</b>{" "}
+            — tags, scope, and timestamps need to be queryable, so they sit on
+            each nilDB node un-sharded. any single node operator can read
+            them.
+          </li>
+          <li>
+            <span className="text-[var(--color-warn)]">·</span>{" "}
+            <b className="text-[var(--color-text-primary)]">browser RAM</b> —
+            what you type lives in your tab&apos;s memory until you close it.
+          </li>
+          <li>
+            <span className="text-[var(--color-warn)]">·</span>{" "}
+            <b className="text-[var(--color-text-primary)]">this page is the attack surface</b>{" "}
+            — a compromised browser, malicious extension, or hijacked domain
+            can read everything you do here.
+          </li>
+        </ul>
       ),
     },
     {
@@ -108,19 +101,17 @@ export function OnboardingProvider() {
       title: "you hold them",
       image: "/onboarding/04-keys.jpg",
       body: (
-        <div className="space-y-4">
-          <p className="font-mono text-[13px] leading-[1.7] text-[var(--color-text-secondary)]">
+        <div className="space-y-3">
+          <p className="font-mono text-[12.5px] leading-[1.65] text-[var(--color-text-secondary)]">
             two keys do all the work: a Venice API key (TEE access) and a
-            Nillion private key (vault identity). in this build they&apos;re
-            wired via <span className="text-[var(--color-accent)]">.env.local</span> for
-            localhost. in production they&apos;ll live in IndexedDB encrypted
-            behind a passkey — and neither ever crosses our wire.
+            Nillion private key (vault identity). in this build they live in{" "}
+            <span className="text-[var(--color-accent)]">.env.local</span>. in
+            production they&apos;ll live in IndexedDB encrypted behind a
+            passkey — and neither ever crosses our wire.
           </p>
-          <div className="font-mono text-[12px] text-[var(--color-text-tertiary)] pt-2 border-t border-[var(--color-border)]">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)] rounded-full" />
-              <span>all keys client-side · no accounts · no telemetry</span>
-            </div>
+          <div className="font-mono text-[11px] text-[var(--color-text-tertiary)] pt-2 border-t border-[var(--color-border)] flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)] rounded-full" />
+            <span>all keys client-side · no accounts · no telemetry</span>
           </div>
         </div>
       ),
@@ -199,10 +190,10 @@ export function OnboardingProvider() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-[560px] max-w-[94vw] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
+        className="w-[600px] h-[640px] max-w-[94vw] max-h-[94vh] bg-[var(--color-panel)] border border-[var(--color-border-strong)] shadow-[0_24px_72px_rgba(0,0,0,0.8)] flex flex-col"
       >
         {/* Top bar: progress + skip */}
-        <div className="px-6 pt-5 pb-4 flex items-center justify-between">
+        <div className="px-6 pt-5 pb-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             {steps.map((_, i) => (
               <button
@@ -230,11 +221,11 @@ export function OnboardingProvider() {
           </button>
         </div>
 
-        {/* Banner image */}
-        {step.image && (
-          <div className="px-6 pb-3">
-            <div className="relative w-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-base)]" style={{ aspectRatio: "4 / 1" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* Banner image — fixed slot */}
+        <div className="px-6 pb-3 shrink-0">
+          <div className="relative w-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-base)]" style={{ aspectRatio: "4 / 1" }}>
+            {step.image && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={step.image}
                 alt=""
@@ -243,29 +234,23 @@ export function OnboardingProvider() {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Body */}
-        <div className="px-7 pt-1 pb-7">
-          <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.22em] mb-2">
+        {/* Body — fills remaining space, scrolls only if needed */}
+        <div className="px-7 pt-2 pb-5 flex-1 overflow-y-auto thin-scroll min-h-0">
+          <div className="font-mono text-[10px] text-[var(--color-accent)] uppercase tracking-[0.22em] mb-1.5">
             {step.eyebrow}
           </div>
-          {idx === 0 ? (
-            <h2 className="font-[var(--font-display)] text-[40px] leading-none tracking-[0.04em] text-[var(--color-accent-bright)] glow mb-5">
-              {step.title}
-            </h2>
-          ) : (
-            <h2 className="font-mono text-[18px] font-medium text-[var(--color-text-primary)] mb-4">
-              {step.title}
-            </h2>
-          )}
+          <h2 className="font-mono text-[18px] font-medium text-[var(--color-text-primary)] mb-3.5">
+            {step.title}
+          </h2>
           {step.body}
         </div>
 
         {/* Footer: back / continue */}
-        <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between gap-3 shrink-0">
           <button
             onClick={back}
             disabled={idx === 0}
