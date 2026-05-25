@@ -189,7 +189,7 @@ export default function ChatPage() {
   return (
     <main className="h-screen w-screen flex bg-[var(--color-base)] overflow-hidden">
       <OnboardingProvider />
-      <Sidebar />
+      <Sidebar vaultPhase={vaultState.phase} />
 
       <section className="flex-1 flex flex-col min-w-0">
         <ChatThread

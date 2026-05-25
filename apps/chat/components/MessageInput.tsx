@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, type KeyboardEvent } from "react";
-import { mockScopes } from "@/lib/mockData";
-import { Dropdown } from "@/components/Dropdown";
 import { ModelPicker } from "@/components/ModelPicker";
 
 function MemoryStatus({
@@ -65,7 +63,6 @@ export function MessageInput({
   vaultPhase: "loading" | "ready" | "error";
 }) {
   const [value, setValue] = useState("");
-  const [scope, setScope] = useState("work");
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   function submit() {
@@ -120,13 +117,6 @@ export function MessageInput({
         <div className="flex items-center justify-between mt-2.5 font-mono text-[10px] text-[var(--color-text-tertiary)]">
           <div className="flex items-center gap-2">
             <ModelPicker value={model} onChange={onModelChange} />
-            <Dropdown
-              label="scope"
-              value={scope}
-              onChange={setScope}
-              width={180}
-              options={mockScopes.map((s) => ({ value: s, label: s }))}
-            />
             <MemoryStatus
               memoryMode={memoryMode}
               vaultPhase={vaultPhase}

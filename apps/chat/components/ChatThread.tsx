@@ -26,15 +26,22 @@ export function ChatThread({
   onHoverMemoryIds: (ids: string[]) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new content
+  // Auto-scroll only if the user is already pinned near the bottom — otherwise
+  // streaming content would hijack scrollback while the user is reading.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 120) {
+      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
   }, [messages]);
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto thin-scroll">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto thin-scroll">
         <div className="max-w-[720px] mx-auto px-8 py-24 text-center space-y-3">
           <div className="font-[var(--font-display)] text-[36px] text-[var(--color-accent-bright)] glow leading-none">
             blindchat
@@ -51,7 +58,7 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto thin-scroll">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto thin-scroll">
       <div className="max-w-[720px] mx-auto px-8 py-10 space-y-7">
         {messages.map((msg) => {
           const isUser = msg.role === "user";

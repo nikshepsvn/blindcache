@@ -240,6 +240,13 @@ async function* runCompat(opts: RunOptions): AsyncGenerator<MemoryEvent> {
     if (!didQuery) return;
     if (queriedAlready) return; // safety: one query round per turn
 
+    // If every query came back empty, the model has nothing to use — skip the
+    // second turn entirely. Saves a roundtrip; the model already wrote a reply.
+    const anyHits = queryResults.some(
+      (r) => r.content && !r.content.startsWith("(")
+    );
+    if (!anyHits) return;
+
     queriedAlready = true;
 
     // Push the assistant's visible reply + result block, then loop.

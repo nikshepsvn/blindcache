@@ -51,7 +51,7 @@ const STEPS: Step[] = [
     eyebrow: "THE STACK",
     title: "three primitives, stitched",
     subtitle:
-      "the seam between an enclave LLM, a sharded vault, and a local embedder.",
+      "the seam between an enclave LLM, a sharded vault, a local embedder — and a tool-calling adapter so every model can use memory.",
     image: "/onboarding/02-stack.jpg",
     body: (
       <div className="space-y-1 mt-3">
@@ -69,6 +69,11 @@ const STEPS: Step[] = [
           tag="embed"
           where="in-browser"
           detail="Xenova all-MiniLM-L6-v2 in your tab. semantic search resolved before anything leaves your machine."
+        />
+        <Row
+          tag="adapter"
+          where="native or compat"
+          detail="Qwen3 models use native function calling; everything else uses an in-text marker protocol. Either way, the model can read + write the vault."
         />
       </div>
     ),
@@ -107,7 +112,8 @@ const STEPS: Step[] = [
     slug: "keys",
     eyebrow: "YOUR KEYS",
     title: "you hold them",
-    subtitle: "two keys do all the work. neither ever crosses our wire.",
+    subtitle:
+      "two keys do all the work. neither ever crosses our wire. this preview keeps them in localStorage; a passkey-wrapped IndexedDB envelope is on the roadmap.",
     image: "/onboarding/04-keys.jpg",
     body: (
       <div className="space-y-1 mt-3">
@@ -123,10 +129,7 @@ const STEPS: Step[] = [
         />
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--color-border)] font-mono text-[10.5px] text-[var(--color-text-tertiary)]">
           <span className="inline-block h-1.5 w-1.5 bg-[var(--color-success)]" />
-          <span>
-            client-side only · in production, keys live in IndexedDB behind a
-            passkey
-          </span>
+          <span>client-side only · no accounts · no telemetry</span>
         </div>
       </div>
     ),
