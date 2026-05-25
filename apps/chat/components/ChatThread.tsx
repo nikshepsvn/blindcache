@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { type Message } from "@/lib/mockData";
 
 function formatContent(content: string) {
@@ -7,10 +8,7 @@ function formatContent(content: string) {
   return parts.map((p, i) => {
     if (p.startsWith("**") && p.endsWith("**")) {
       return (
-        <strong
-          key={i}
-          className="text-[var(--color-accent-bright)] font-medium"
-        >
+        <strong key={i} className="text-[var(--color-accent-bright)] font-medium">
           {p.slice(2, -2)}
         </strong>
       );
@@ -27,6 +25,31 @@ export function ChatThread({
   selectedMemoryIds: string[];
   onHoverMemoryIds: (ids: string[]) => void;
 }) {
+  const endRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll on new content
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto thin-scroll">
+        <div className="max-w-[720px] mx-auto px-8 py-24 text-center space-y-3">
+          <div className="font-[var(--font-display)] text-[36px] text-[var(--color-accent-bright)] glow leading-none">
+            blindchat
+          </div>
+          <div className="font-mono text-[13px] text-[var(--color-text-secondary)]">
+            private chat with portable memory
+          </div>
+          <div className="font-mono text-[11px] text-[var(--color-text-tertiary)] pt-6">
+            type below to start · venice inference · embed local
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto thin-scroll">
       <div className="max-w-[720px] mx-auto px-8 py-10 space-y-7">
@@ -34,7 +57,6 @@ export function ChatThread({
           const isUser = msg.role === "user";
           return (
             <div key={msg.id} className="space-y-2">
-              {/* Speaker line — minimal */}
               <div className="flex items-center gap-3 font-mono text-[11px] text-[var(--color-text-tertiary)]">
                 <span
                   className={
@@ -47,9 +69,7 @@ export function ChatThread({
                 </span>
                 {msg.injectedMemoryIds && msg.injectedMemoryIds.length > 0 && (
                   <button
-                    onMouseEnter={() =>
-                      onHoverMemoryIds(msg.injectedMemoryIds!)
-                    }
+                    onMouseEnter={() => onHoverMemoryIds(msg.injectedMemoryIds!)}
                     onMouseLeave={() => onHoverMemoryIds([])}
                     className="hover:text-[var(--color-accent)] transition"
                   >
@@ -61,13 +81,26 @@ export function ChatThread({
                 <span className="ml-auto">{msg.timestamp}</span>
               </div>
 
-              {/* Content */}
               <div className="text-[14.5px] leading-[1.75] whitespace-pre-wrap font-mono text-[var(--color-text-primary)]">
-                {formatContent(msg.content)}
+                {msg.content ? (
+                  formatContent(msg.content)
+                ) : msg.streaming ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 bg-[var(--color-accent)] rounded-full pulse-dot" />
+                    <span className="h-1.5 w-1.5 bg-[var(--color-accent)] rounded-full pulse-dot pulse-dot-2" />
+                    <span className="h-1.5 w-1.5 bg-[var(--color-accent)] rounded-full pulse-dot pulse-dot-3" />
+                  </span>
+                ) : (
+                  <span className="opacity-50">(empty)</span>
+                )}
+                {msg.content && msg.streaming && (
+                  <span className="inline-block w-2 h-4 bg-[var(--color-accent)] ml-0.5 caret align-text-bottom" />
+                )}
               </div>
             </div>
           );
         })}
+        <div ref={endRef} />
       </div>
     </div>
   );
